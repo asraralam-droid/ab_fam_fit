@@ -1,0 +1,62 @@
+/* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORTS — DO NOT DELETE THIS COMMENT */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* CRITICAL: THE FOLLOWING TAILWIND IMPORTS MUST NEVER BE DELETED OR REORDERED — DO NOT DELETE THIS COMMENT */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* END TAILWIND IMPORTS — ALL OTHER CSS MUST GO BELOW THIS LINE */
+
+@layer base {
+  :root {
+    /* Soft lavender-tinted canvas — AB brand light */
+    --background: #F3EFF8;
+    --surface: #FFFFFF;
+    --surface-2: #EBE4F4;
+    --text: #1A1035;
+    --text-muted: #6B6280;
+    --border: #D9D0E8;
+    /* Dark purple */
+    --primary: #2D1B5E;
+    --primary-hover: #3D2778;
+    /* Sage green */
+    --accent-sage: #7E9568;
+    /* Lavender */
+    --accent-lavender: #C9BDD9;
+    /* Warm gold accent (sparingly) */
+    --accent-gold: #B89150;
+  }
+  .dark {
+    /* Deep dark purple background */
+    --background: #120C24;
+    --surface: #1C1436;
+    --surface-2: #2A1F4A;
+    --text: #F3EFF8;
+    --text-muted: #A89BC4;
+    --border: #3A2F5C;
+    /* Lifted lavender-purple for contrast on dark */
+    --primary: #B59BE8;
+    --primary-hover: #C7B0F0;
+    --accent-sage: #9DB082;
+    --accent-lavender: #C9BDD9;
+    --accent-gold: #D4AE6A;
+  }
+}
+body {
+  @apply bg-background text-text font-sans antialiased;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  letter-spacing: -0.005em;
+}
+/* Hide scrollbar for clean mobile look */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

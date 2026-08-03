@@ -1,0 +1,45 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies & build output
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Vite / TypeScript cache
+.vite/
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# admin-desktop standalone package (generated / local only)
+admin-desktop/node_modules/
+admin-desktop/dist/
+admin-desktop/dist-ssr/
+admin-desktop/.vite/
+admin-desktop/tsconfig.tsbuildinfo
+admin-desktop/*.local
+admin-desktop/.env
+admin-desktop/.env.*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

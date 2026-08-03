@@ -1,0 +1,74 @@
+/* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORTS — DO NOT DELETE THIS COMMENT */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* CRITICAL: THE FOLLOWING TAILWIND IMPORTS MUST NEVER BE DELETED OR REORDERED — DO NOT DELETE THIS COMMENT */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* END TAILWIND IMPORTS — ALL OTHER CSS MUST GO BELOW THIS LINE */
+
+@layer base {
+  :root {
+    /* Warm cream/beige background like the reference */
+    --background: #E9E4D8;
+    --surface: #FFFFFF;
+    --surface-2: #F2EEE3;
+    --text: #1F1A2E;
+    --text-muted: #6E6657;
+    --border: #DCD6C7;
+    /* Deep aubergine purple (matches sidebar in reference) */
+    --primary: #2D1B5E;
+    --primary-hover: #3D2778;
+    /* Muted sage olive for headings/accents */
+    --accent-sage: #7E9568;
+    /* Soft lavender for ambassador banner / pills */
+    --accent-lavender: #C9BDD9;
+    /* Warm gold for highlights like "Authentic Balance" tag */
+    --accent-gold: #B89150;
+  }
+  .dark {
+    /* Deep aubergine tinted background instead of black */
+    --background: #16112B;
+    --surface: #1F1A3A;
+    --surface-2: #2A2349;
+    --text: #F1ECDE;
+    --text-muted: #A39B86;
+    --border: #322B52;
+    /* Lift primary for contrast on dark */
+    --primary: #B59BE8;
+    --primary-hover: #C7B0F0;
+    --accent-sage: #9DB082;
+    --accent-lavender: #B3A2CC;
+    --accent-gold: #D4AE6A;
+  }
+}
+body {
+  @apply bg-background text-text font-sans antialiased;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  letter-spacing: -0.005em;
+}
+/* Hide scrollbar for clean mobile look */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Desktop admin layout */
+.admin-desktop-main::-webkit-scrollbar {
+  width: 8px;
+}
+.admin-desktop-main::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+.admin-desktop-main .pb-24 {
+  padding-bottom: 2rem;
+}
