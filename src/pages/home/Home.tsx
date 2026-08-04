@@ -21,7 +21,6 @@ import {
   NotebookPen,
   Briefcase,
   Cog,
-  CalendarCheck,
   Sparkles,
   Heart
 } from 'lucide-react';
@@ -51,7 +50,7 @@ export function Home() {
   } = useSelector((state: RootState) => state.home);
   const { loggedMeals } = useSelector((state: RootState) => state.meals);
   const { user, familyCode } = useSelector((state: RootState) => state.auth);
-  const { tier, coachingRequest } = useSelector(
+  const { tier } = useSelector(
     (state: RootState) => state.membership
   );
   const { pillars, businessFollowUp, mentalFollowUp, fitnessFollowUp } =
@@ -106,7 +105,6 @@ export function Home() {
   const automationProgress = businessFollowUp?.automationNeeds?.length
     ? Math.min(90, businessFollowUp.automationNeeds.length * 30)
     : 20;
-  const retainerActive = tier === 'coaching' || tier === 'challenge';
 
   const handleWaterTap = () => {
     if (waterCount < 8) {
@@ -154,19 +152,11 @@ export function Home() {
       </div>
 
       <div className="px-4 flex flex-col gap-6">
-        {!canAccessLessons && (
+        {!canAccessLessons && homeMode !== 'business' && (
           <UpgradeGate
             compact
-            title={
-              homeMode === 'business'
-                ? 'Basic business entry unlocked'
-                : 'Books + self-guided tools unlocked'
-            }
-            description={
-              homeMode === 'business'
-                ? 'Want premium consulting, automation build-outs, or coaching? Request to work with Misty.'
-                : 'Want step-by-step lessons, meal/juice guidance, or coaching? Request to work with Misty or join a paid challenge.'
-            }
+            title="Books + self-guided tools unlocked"
+            description="Want step-by-step lessons, meal/juice guidance, or coaching? Request to work with Misty or join a paid challenge."
           />
         )}
 
@@ -272,9 +262,9 @@ export function Home() {
                   businessFollowUp?.automationNeeds?.[0]
                     ? `Automate: ${businessFollowUp.automationNeeds[0]}`
                     : 'Map automation opportunities',
-                  retainerActive
-                    ? 'Prep for your next Misty session'
-                    : 'Upgrade to work with Misty'
+                  businessFollowUp?.notes
+                    ? `Note: ${businessFollowUp.notes}`
+                    : 'Document business goals for Misty'
                 ].map((step, i) => (
                   <div key={step} className="flex items-start gap-3">
                     <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">
@@ -313,40 +303,6 @@ export function Home() {
                 <Cog className="w-4 h-4" />
                 Systems, workflows & ops infrastructure
               </div>
-            </section>
-
-            <section className="bg-surface rounded-2xl border border-border p-5 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-accent-lavender/30 text-primary flex items-center justify-center flex-shrink-0">
-                    <CalendarCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-text">
-                      Retainer status
-                    </h3>
-                    <p className="text-sm text-text-muted mt-0.5">
-                      {retainerActive
-                        ? 'Active Misty consulting retainer'
-                        : coachingRequest.submitted
-                          ? 'Work with Misty request submitted'
-                          : 'No active retainer yet'}
-                    </p>
-                  </div>
-                </div>
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded flex-shrink-0 ${retainerActive ? 'bg-accent-sage/20 text-accent-sage' : 'bg-surface-2 text-text-muted'}`}>
-                  {retainerActive ? 'Active' : 'Pending'}
-                </span>
-              </div>
-              {!retainerActive && (
-                <button
-                  type="button"
-                  onClick={() => navigate('/work-with-misty')}
-                  className="w-full h-11 mt-4 rounded-xl bg-primary text-white text-sm font-bold">
-                  Work with Misty
-                </button>
-              )}
             </section>
           </>
         )}
@@ -518,7 +474,7 @@ export function Home() {
                   Open business dashboard
                 </h3>
                 <p className="text-sm text-text-muted mt-0.5">
-                  Full consulting, automation & retainer metrics
+                  Full consulting & automation metrics
                 </p>
               </div>
             </div>

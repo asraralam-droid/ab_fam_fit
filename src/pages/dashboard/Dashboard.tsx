@@ -59,9 +59,7 @@ export function Dashboard() {
     assessments
   } = useSelector((state: RootState) => state.onboarding);
   const { dailyLogs } = useSelector((state: RootState) => state.challenges);
-  const { tier, coachingRequest } = useSelector(
-    (state: RootState) => state.membership
-  );
+  const { tier } = useSelector((state: RootState) => state.membership);
 
   const normalizedPillars = useMemo(() => {
     const mapped = pillars
@@ -131,7 +129,6 @@ export function Dashboard() {
   const automationProgress = businessFollowUp?.automationNeeds?.length
     ? Math.min(90, businessFollowUp.automationNeeds.length * 30)
     : 20;
-  const retainerActive = tier === 'coaching' || tier === 'challenge';
 
   const weightProgress =
     currentWeight != null && goalWeight != null && currentWeight > goalWeight
@@ -152,7 +149,7 @@ export function Dashboard() {
     },
     business: {
       title: 'Business dashboard',
-      subtitle: 'Consulting, automation, next steps & retainer.'
+      subtitle: 'Consulting, automation & next steps.'
     },
     coaching: {
       title: 'Life coaching dashboard',
@@ -286,13 +283,10 @@ export function Dashboard() {
             consultingNeeds={businessFollowUp?.consultingNeeds ?? []}
             automationNeeds={businessFollowUp?.automationNeeds ?? []}
             notes={businessFollowUp?.notes || ''}
-            retainerActive={retainerActive}
-            coachingSubmitted={coachingRequest.submitted}
             journeyDay={journeyDay}
             learningCompleted={learning.completed}
             learningTotal={learning.total}
             completionRate={completionRate}
-            onUpgrade={() => navigate('/work-with-misty')}
           />
         )}
 
@@ -541,13 +535,10 @@ function BusinessDashboard({
   consultingNeeds,
   automationNeeds,
   notes,
-  retainerActive,
-  coachingSubmitted,
   journeyDay,
   learningCompleted,
   learningTotal,
-  completionRate,
-  onUpgrade
+  completionRate
 }: {
   consultingProgress: number;
   automationProgress: number;
@@ -555,13 +546,10 @@ function BusinessDashboard({
   consultingNeeds: string[];
   automationNeeds: string[];
   notes: string;
-  retainerActive: boolean;
-  coachingSubmitted: boolean;
   journeyDay: number;
   learningCompleted: number;
   learningTotal: number;
   completionRate: number;
-  onUpgrade: () => void;
 }) {
   const nextSteps = [
     consultingNeeds.length
@@ -570,11 +558,8 @@ function BusinessDashboard({
     automationNeeds.length
       ? `Build automation: ${automationNeeds[0]}`
       : 'Map automation opportunities',
-    retainerActive
-      ? 'Prepare for next Misty session'
-      : 'Upgrade to work with Misty',
     notes ? `Note: ${notes}` : 'Document business goals for Misty'
-  ].slice(0, 3);
+  ];
 
   return (
     <>
@@ -605,15 +590,9 @@ function BusinessDashboard({
         />
         <StatCard
           icon={<Sparkles className="w-5 h-5 text-primary" />}
-          value={retainerActive ? 'Active' : 'Pending'}
-          label="Retainer"
-          sub={
-            retainerActive
-              ? 'Coaching engaged'
-              : coachingSubmitted
-                ? 'Request submitted'
-                : 'Upgrade required'
-          }
+          value={`${completionRate}%`}
+          label="Programs"
+          sub={`${learningCompleted}/${learningTotal} lessons`}
           delay={0.15}
         />
       </div>
@@ -667,42 +646,6 @@ function BusinessDashboard({
               </li>
             ))}
           </ul>
-        </div>
-      </section>
-
-      <section className="mb-5">
-        <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">
-          Retainer status
-        </h3>
-        <div className="bg-surface border border-border rounded-2xl p-4">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <p className="text-sm font-bold text-text">
-                {retainerActive
-                  ? 'Active Misty retainer'
-                  : 'No active retainer'}
-              </p>
-              <p className="text-xs text-text-muted mt-0.5">
-                {retainerActive
-                  ? 'Premium coaching & consulting access is unlocked.'
-                  : coachingSubmitted
-                    ? 'Your Work with Misty request is in review.'
-                    : 'Upgrade for personalized consulting and guidance.'}
-              </p>
-            </div>
-            <span
-              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded flex-shrink-0 ${retainerActive ? 'bg-accent-sage/20 text-accent-sage' : 'bg-surface-2 text-text-muted'}`}>
-              {retainerActive ? 'Active' : 'Pending'}
-            </span>
-          </div>
-          {!retainerActive && (
-            <button
-              type="button"
-              onClick={onUpgrade}
-              className="w-full h-11 rounded-xl bg-primary text-white text-sm font-bold">
-              Work with Misty
-            </button>
-          )}
         </div>
       </section>
 
