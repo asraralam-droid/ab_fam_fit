@@ -194,9 +194,7 @@ export function Home() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold">
-                  {homeMode === 'business'
-                    ? `${streakDays}-Day Momentum`
-                    : `${streakDays} Day Streak`}
+                  {streakDays} Day Streak
                 </h2>
                 <p className="text-white/80 text-sm">
                   {homeMode === 'business'
