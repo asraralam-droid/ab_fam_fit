@@ -12,10 +12,7 @@ import {
   Share2,
   Copy,
   Crown,
-  CheckCircle2,
-  Droplets,
-  Scale,
-  Heart
+  CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { canAccessFeature } from '../../utils/membershipAccess';
@@ -29,8 +26,6 @@ const PARTICIPANT_TABS: { id: ParticipantTab; label: string }[] = [
   { id: 'community', label: 'Community' }
 ];
 
-const MOOD_LABELS = ['Rough', 'Low', 'Okay', 'Good', 'Amazing'];
-
 export function ChallengeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -39,24 +34,8 @@ export function ChallengeDetail() {
   const challenge = useSelector((state: RootState) =>
     state.challenges.challenges.find((c) => c.id === id)
   );
-  const dailyLogs = useSelector(
-    (state: RootState) => state.challenges.dailyLogs
-  );
   const { user } = useSelector((state: RootState) => state.auth);
   const { tier } = useSelector((state: RootState) => state.membership);
-
-  const today = new Date().toISOString().slice(0, 10);
-  const todayLog = dailyLogs.find(
-    (l) => l.challengeId === id && l.date === today
-  );
-
-  const [waterGlasses, setWaterGlasses] = useState(todayLog?.waterGlasses ?? 0);
-  const [meals, setMeals] = useState(todayLog?.meals ?? '');
-  const [weightLbs, setWeightLbs] = useState(
-    todayLog?.weightLbs?.toString() ?? ''
-  );
-  const [mood, setMood] = useState(todayLog?.mood ?? 3);
-  const [notes, setNotes] = useState(todayLog?.notes ?? '');
 
   const canJoinChallenges = canAccessFeature(tier, 'joinChallenges', {
     role: user?.role
@@ -123,22 +102,6 @@ export function ChallengeDetail() {
   const handleShare = () => {
     navigator.clipboard?.writeText(challenge.referralLink);
     toast.success('Referral link copied — share to earn rewards');
-  };
-
-  const handleSaveDaily = () => {
-    dispatch(
-      challengesSlice.actions.logChallengeDaily({
-        id: todayLog?.id ?? `log-${Date.now()}`,
-        challengeId: challenge.id,
-        date: today,
-        waterGlasses,
-        meals: meals.trim(),
-        weightLbs: weightLbs ? Number(weightLbs) : null,
-        mood,
-        notes: notes.trim() || undefined
-      })
-    );
-    toast.success('Daily metrics saved — synced to Misty’s dashboard');
   };
 
   const joinLabel = challenge.joined
@@ -242,101 +205,6 @@ export function ChallengeDetail() {
             />
           </div>
         )}
-
-        {challenge.joined &&
-          challenge.requiresDailyLogs &&
-          !challenge.completed && (
-            <div className="rounded-2xl border border-border bg-surface p-4 mb-6">
-              <h3 className="text-sm font-bold text-text mb-1">
-                Today&apos;s challenge metrics
-              </h3>
-              <p className="text-xs text-text-muted mb-4">
-                Daily input feeds Misty&apos;s Admin Dashboard — completion alone
-                is not enough.
-              </p>
-
-              <div className="flex flex-col gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Droplets className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-bold text-text">
-                      Water ({waterGlasses}/8)
-                    </span>
-                  </div>
-                  <div className="flex gap-1.5">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setWaterGlasses(i + 1)}
-                        className={`flex-1 h-8 rounded-lg ${i < waterGlasses ? 'bg-primary' : 'bg-surface-2 border border-border'}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-text">Meals</label>
-                  <textarea
-                    value={meals}
-                    onChange={(e) => setMeals(e.target.value)}
-                    rows={2}
-                    placeholder="What did you eat / juice today?"
-                    className="w-full p-3 rounded-xl bg-surface-2 border border-border text-sm outline-none resize-none"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-text flex items-center gap-1.5">
-                    <Scale className="w-3.5 h-3.5" /> Weight (lbs)
-                  </label>
-                  <input
-                    type="number"
-                    value={weightLbs}
-                    onChange={(e) => setWeightLbs(e.target.value)}
-                    className="w-full h-11 px-3 rounded-xl bg-surface-2 border border-border outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-text flex items-center gap-1.5 mb-2">
-                    <Heart className="w-3.5 h-3.5" /> Mood / feelings
-                  </label>
-                  <div className="flex gap-1.5">
-                    {MOOD_LABELS.map((label, i) => {
-                      const value = i + 1;
-                      return (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => setMood(value)}
-                          className={`flex-1 py-2 rounded-lg text-[10px] font-bold border ${mood === value ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-muted'}`}>
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-text">Notes</label>
-                  <input
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Optional"
-                    className="w-full h-11 px-3 rounded-xl bg-surface-2 border border-border outline-none text-sm"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleSaveDaily}
-                  className="w-full h-11 rounded-xl bg-accent-sage text-white font-bold text-sm">
-                  Save today&apos;s metrics
-                </button>
-              </div>
-            </div>
-          )}
 
         <div className="rounded-2xl bg-accent-lavender/15 border border-accent-lavender/30 p-4 mb-6">
           <p className="text-[10px] uppercase tracking-wider font-bold text-primary mb-1">
