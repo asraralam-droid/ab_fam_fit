@@ -17,12 +17,11 @@ import {
   Trophy,
   Gift,
   GraduationCap,
-  LayoutDashboard,
   NotebookPen,
   Briefcase,
   Cog,
-  Sparkles,
-  Heart
+  Heart,
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { WeeklyCheckInModal } from '../../components/modals/WeeklyCheckInModal';
@@ -33,6 +32,7 @@ import { canAccessFeature } from '../../utils/membershipAccess';
 import { UpgradeGate } from '../../components/membership/UpgradeGate';
 import {
   normalizePillarId,
+  pillarById,
   primaryDashboardMode,
   type AbPillarId
 } from '../../utils/abPillars';
@@ -86,6 +86,9 @@ export function Home() {
     ? primaryDashboardMode(normalizedPillars)
     : 'fitness';
   const needsPillarSetup = normalizedPillars.length === 0;
+  const startingPillar = normalizedPillars[0]
+    ? pillarById(normalizedPillars[0])
+    : undefined;
   const showFitness =
     !needsPillarSetup &&
     (homeMode === 'fitness' || homeMode === 'mixed');
@@ -114,6 +117,41 @@ export function Home() {
       );
   const businessNotes =
     businessFollowUp?.notes || biggestObstacle || '';
+
+  const fitnessGoals =
+    fitnessFollowUp?.goals?.length ?
+      fitnessFollowUp.goals :
+      improveAreas.filter((a) =>
+        ['My health', 'My habits', 'My confidence'].includes(a)
+      );
+  const fitnessNotes =
+    fitnessFollowUp?.expectations || biggestObstacle || '';
+
+  const coachingFocusAreas =
+    mentalFollowUp?.focusAreas?.length ?
+      mentalFollowUp.focusAreas :
+      improveAreas.filter((a) =>
+        [
+          'My mindset',
+          'My habits',
+          'My relationships',
+          'My confidence',
+          'My leadership',
+          'My community'
+        ].includes(a)
+      );
+  const coachingNotes =
+    mentalFollowUp?.expectations || biggestObstacle || '';
+
+  const dashboardLabel = startingPillar
+    ? `${startingPillar.label} dashboard`
+    : homeMode === 'business'
+      ? 'Business dashboard'
+      : homeMode === 'coaching'
+        ? 'Coaching dashboard'
+        : homeMode === 'mixed'
+          ? 'Multi-pillar dashboard'
+          : 'Wellness dashboard';
 
   const canAccessLessons = canAccessFeature(tier, 'structuredLessons', {
     role: user?.role
@@ -148,14 +186,31 @@ export function Home() {
     }
   };
 
-  const journeyLabel =
-    homeMode === 'business'
+  const journeyLabel = startingPillar
+    ? `of your ${startingPillar.label} journey`
+    : homeMode === 'business'
       ? 'of your business journey'
       : homeMode === 'coaching'
         ? 'of your coaching journey'
         : homeMode === 'mixed'
           ? 'of your Authentic Balance journey'
           : 'of your wellness journey';
+
+  const streakIcon =
+    homeMode === 'business' ? (
+      <Briefcase className="w-6 h-6 text-white" />
+    ) : homeMode === 'coaching' ? (
+      <Sparkles className="w-6 h-6 text-white" />
+    ) : (
+      <Flame className="w-6 h-6 text-orange-300 fill-orange-300" />
+    );
+
+  const streakSubcopy =
+    homeMode === 'business'
+      ? 'Keep showing up for your business goals'
+      : homeMode === 'coaching'
+        ? 'Keep showing up for your growth'
+        : `Longest: ${longestStreak} days`;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24">
@@ -167,15 +222,7 @@ export function Home() {
           Day {journeyDay} {journeyLabel}
         </p>
         <p className="text-[11px] text-primary font-bold uppercase tracking-wider mt-1">
-          {needsPillarSetup
-            ? 'Complete your path setup'
-            : homeMode === 'business'
-              ? 'Business home'
-              : homeMode === 'coaching'
-                ? 'Life coaching home'
-                : homeMode === 'mixed'
-                  ? 'Multi-pillar home'
-                  : 'Health & wellness home'}
+          {needsPillarSetup ? 'Complete your path setup' : dashboardLabel}
         </p>
       </div>
 
@@ -194,8 +241,8 @@ export function Home() {
               Set your Authentic Balance path
             </h3>
             <p className="text-sm text-text-muted mb-4">
-              Your home is personalized by pillar. Complete onboarding so we
-              show Business, Health, or Life Coaching — not everything at once.
+              Your home dashboard is personalized by your starting pillar.
+              Complete onboarding to see the right path for you.
             </p>
             <button
               type="button"
@@ -214,21 +261,13 @@ export function Home() {
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                {homeMode === 'business' ? (
-                  <Briefcase className="w-6 h-6 text-white" />
-                ) : (
-                  <Flame className="w-6 h-6 text-orange-300 fill-orange-300" />
-                )}
+                {streakIcon}
               </div>
               <div>
                 <h2 className="text-2xl font-bold">
                   {streakDays} Day Streak
                 </h2>
-                <p className="text-white/80 text-sm">
-                  {homeMode === 'business'
-                    ? 'Keep showing up for your business goals'
-                    : `Longest: ${longestStreak} days`}
-                </p>
+                <p className="text-white/80 text-sm">{streakSubcopy}</p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-white/50" />
@@ -242,12 +281,6 @@ export function Home() {
                 <h3 className="text-lg font-bold text-text">
                   Consulting progress
                 </h3>
-                <button
-                  type="button"
-                  onClick={() => navigate('/dashboard')}
-                  className="text-sm font-medium text-primary flex items-center gap-1">
-                  Details <ChevronRight className="w-4 h-4" />
-                </button>
               </div>
               <div className="bg-surface rounded-2xl border border-border p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
@@ -335,6 +368,30 @@ export function Home() {
 
         {showFitness && (
           <>
+            {(fitnessGoals.length > 0 || fitnessNotes) && (
+              <section className="bg-surface rounded-2xl border border-border p-5 shadow-sm">
+                <h3 className="text-lg font-bold text-text mb-3">
+                  Your 90-day focus
+                </h3>
+                {fitnessGoals.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {fitnessGoals.map((goal) => (
+                      <span
+                        key={goal}
+                        className="px-3 py-1.5 rounded-full text-xs font-bold bg-primary/10 text-primary">
+                        {goal}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {fitnessNotes ? (
+                  <p className="text-sm text-text-muted">
+                    Biggest obstacle: {fitnessNotes}
+                  </p>
+                ) : null}
+              </section>
+            )}
+
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-bold text-text">Today&apos;s Meals</h3>
@@ -421,15 +478,17 @@ export function Home() {
           </>
         )}
 
-        {showCoaching && !showFitness && (
+        {showCoaching && (
           <section className="bg-surface rounded-2xl border border-border p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-3">
               <Heart className="w-5 h-5 text-accent-lavender" />
-              <h3 className="text-lg font-bold text-text">Focus areas</h3>
+              <h3 className="text-lg font-bold text-text">
+                {startingPillar?.label || 'Coaching'} focus
+              </h3>
             </div>
             <div className="flex flex-wrap gap-2 mb-3">
-              {(mentalFollowUp?.focusAreas?.length
-                ? mentalFollowUp.focusAreas
+              {(coachingFocusAreas.length
+                ? coachingFocusAreas
                 : ['Clarity', 'Accountability']
               ).map((area) => (
                 <span
@@ -439,15 +498,15 @@ export function Home() {
                 </span>
               ))}
             </div>
-            {mentalFollowUp?.expectations && (
+            {coachingNotes ? (
               <p className="text-sm text-text-muted">
-                {mentalFollowUp.expectations}
+                Biggest obstacle: {coachingNotes}
               </p>
-            )}
+            ) : null}
           </section>
         )}
 
-        {(showFitness || showCoaching) && (
+        {(showFitness || showCoaching || showBusiness) && (
           <section
             onClick={() => setShowCheckIn(true)}
             className="bg-accent-lavender/20 rounded-2xl border border-accent-lavender/30 p-5 flex items-center justify-between cursor-pointer hover:bg-accent-lavender/30 transition-colors">
@@ -489,25 +548,6 @@ export function Home() {
           </section>
         )}
 
-        {showBusiness && !showFitness && !showCoaching && (
-          <section
-            onClick={() => navigate('/dashboard')}
-            className="bg-primary/5 rounded-2xl border border-primary/20 p-5 flex items-center justify-between cursor-pointer hover:bg-primary/10 transition-colors">
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <div>
-                <h3 className="text-lg font-bold text-primary">
-                  Open business dashboard
-                </h3>
-                <p className="text-sm text-text-muted mt-0.5">
-                  Full consulting & automation metrics
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-primary/50" />
-          </section>
-        )}
-
         <section className="bg-surface rounded-2xl border border-border p-6 shadow-sm text-center relative overflow-hidden">
           <p className="text-text font-medium italic relative z-10">
             &quot;{dailyQuote.text}&quot;
@@ -546,12 +586,6 @@ export function Home() {
                 icon: Gift,
                 to: '/affiliate',
                 color: 'bg-accent-sage/15 text-accent-sage'
-              },
-              {
-                label: 'My Dashboard',
-                icon: LayoutDashboard,
-                to: '/dashboard',
-                color: 'bg-primary/10 text-primary'
               },
               {
                 label: 'All',
@@ -613,6 +647,8 @@ export function Home() {
         <div className="w-24 h-24 bg-orange-100 dark:bg-primary/20 rounded-full flex items-center justify-center mb-6">
           {homeMode === 'business' ? (
             <Briefcase className="w-12 h-12 text-primary" />
+          ) : homeMode === 'coaching' ? (
+            <Sparkles className="w-12 h-12 text-primary" />
           ) : (
             <Flame className="w-12 h-12 text-orange-500 fill-orange-500" />
           )}
@@ -621,7 +657,9 @@ export function Home() {
         <p className="text-sm text-text-muted">
           {homeMode === 'business'
             ? 'Consistency compounds. Keep moving your business goals forward.'
-            : "You're on fire! Keep up the amazing work building healthy habits."}
+            : homeMode === 'coaching'
+              ? 'Keep showing up. Growth happens one day at a time.'
+              : "You're on fire! Keep up the amazing work building healthy habits."}
         </p>
       </CenteredModal>
 

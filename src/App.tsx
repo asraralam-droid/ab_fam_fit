@@ -55,7 +55,6 @@ import { AdminPayouts } from './pages/affiliate/admin/AdminPayouts';
 import { AdminFraud } from './pages/affiliate/admin/AdminFraud';
 import { Programs } from './pages/programs/Programs';
 import { ProgramDetail } from './pages/programs/ProgramDetail';
-import { Dashboard } from './pages/dashboard/Dashboard';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminMembers } from './pages/admin/AdminMembers';
 import { AdminPromos } from './pages/admin/AdminPromos';
@@ -121,7 +120,7 @@ export function App() {
                 <Route path="/programs" element={<Programs />} />
                 <Route path="/programs/:id" element={<ProgramDetail />} />
                 <Route path="/programs/:id/section/:sectionId" element={<ProgramDetail />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Navigate to="/home" replace />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/members" element={<AdminMembers />} />
                 <Route path="/admin/promos" element={<AdminPromos />} />

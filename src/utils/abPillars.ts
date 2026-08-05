@@ -172,12 +172,14 @@ export function hasCoachingPillar(pillars: string[]) {
   return pillars.some((p) => toCommunityPillar(p) === 'life-coaching');
 }
 
-/** Build business dashboard follow-up from the new onboarding answers. */
-export function buildBusinessFollowUpFromAnswers(input: {
+type OnboardingAnswers = {
   identityRole: string;
   improveAreas: string[];
   biggestObstacle: string;
-}) {
+};
+
+/** Build business home follow-up from onboarding answers. */
+export function buildBusinessFollowUpFromAnswers(input: OnboardingAnswers) {
   const consultingKeys = new Set([
     'My business',
     'My leadership',
@@ -210,6 +212,50 @@ export function buildBusinessFollowUpFromAnswers(input: {
         ['Systems & workflows'],
     notes: input.biggestObstacle.trim()
   };
+}
+
+/** Build health / body home follow-up from onboarding answers. */
+export function buildFitnessFollowUpFromAnswers(input: OnboardingAnswers) {
+  const goalKeys = new Set(['My health', 'My habits', 'My confidence']);
+  const goals = input.improveAreas.filter((a) => goalKeys.has(a));
+  const obstacle = input.biggestObstacle.trim();
+
+  return {
+    challenges: obstacle ? [obstacle] : [],
+    goals: goals.length > 0 ? goals : input.improveAreas.slice(0, 3),
+    outcomes: [],
+    expectations: obstacle
+  };
+}
+
+/** Build coaching / mindset home follow-up from onboarding answers. */
+export function buildMentalFollowUpFromAnswers(input: OnboardingAnswers) {
+  const focusKeys = new Set([
+    'My mindset',
+    'My habits',
+    'My relationships',
+    'My confidence',
+    'My leadership',
+    'My community'
+  ]);
+  const focusAreas = input.improveAreas.filter((a) => focusKeys.has(a));
+  const obstacle = input.biggestObstacle.trim();
+
+  return {
+    focusAreas:
+      focusAreas.length > 0 ? focusAreas : input.improveAreas.slice(0, 3),
+    expectations: obstacle
+  };
+}
+
+/** Resolve which home dashboard mode a starting pillar should open. */
+export function homeModeForPillar(
+  pillarId: AbPillarId | string | null | undefined
+): 'fitness' | 'business' | 'coaching' {
+  const community = pillarId ? toCommunityPillar(pillarId) : null;
+  if (community === 'business') return 'business';
+  if (community === 'life-coaching') return 'coaching';
+  return 'fitness';
 }
 
 /** Map legacy pillar ids from earlier prototype builds. */

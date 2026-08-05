@@ -12,6 +12,9 @@ import {
   IDENTITY_ROLE_OPTIONS,
   IMPROVE_AREA_OPTIONS,
   buildBusinessFollowUpFromAnswers,
+  buildFitnessFollowUpFromAnswers,
+  buildMentalFollowUpFromAnswers,
+  toCommunityPillar,
   type AbPillarId
 } from '../../utils/abPillars';
 
@@ -88,14 +91,24 @@ export function Onboarding() {
   const handleComplete = () => {
     if (!startingPillar) return;
 
-    const isBusiness = startingPillar === 'authentic-business';
-    const businessFollowUp = isBusiness
-      ? buildBusinessFollowUpFromAnswers({
-          identityRole,
-          improveAreas,
-          biggestObstacle
-        })
-      : null;
+    const answers = {
+      identityRole,
+      improveAreas,
+      biggestObstacle
+    };
+    const community = toCommunityPillar(startingPillar);
+    const fitnessFollowUp =
+      community === 'health-wellness' ?
+        buildFitnessFollowUpFromAnswers(answers) :
+        null;
+    const businessFollowUp =
+      community === 'business' ?
+        buildBusinessFollowUpFromAnswers(answers) :
+        null;
+    const mentalFollowUp =
+      community === 'life-coaching' ?
+        buildMentalFollowUpFromAnswers(answers) :
+        null;
 
     dispatch(
       onboardingSlice.actions.setOnboardingData({
@@ -109,9 +122,9 @@ export function Onboarding() {
         currentWeight: null,
         goalWeight: null,
         assessments: {},
-        fitnessFollowUp: null,
+        fitnessFollowUp,
         businessFollowUp,
-        mentalFollowUp: null
+        mentalFollowUp
       })
     );
 
@@ -131,7 +144,7 @@ export function Onboarding() {
     }
 
     dispatch(onboardingSlice.actions.completeOnboarding());
-    navigate(isBusiness ? '/dashboard' : '/home');
+    navigate('/home');
   };
 
   const optionCard = (
@@ -352,7 +365,7 @@ export function Onboarding() {
           onClick={handleNext}
           className="w-full h-14 bg-primary text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary/30 hover:bg-primary-hover active:scale-[0.98] transition-all flex items-center justify-center gap-2">
           {step === 'done' ?
-            'Go to Dashboard' :
+            'Go to Home' :
             step === 'welcome' ?
               'Begin' :
               'Continue'}

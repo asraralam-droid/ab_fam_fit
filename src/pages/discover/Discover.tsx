@@ -78,10 +78,10 @@ export function Discover() {
     accent: 'primary'
   },
   {
-    label: 'My Dashboard',
-    desc: 'Progress, streaks, and weekly trends.',
+    label: 'Dashboard',
+    desc: 'Your personalized home by pillar.',
     icon: LayoutDashboard,
-    to: '/dashboard',
+    to: '/home',
     accent: 'primary'
   },
   {

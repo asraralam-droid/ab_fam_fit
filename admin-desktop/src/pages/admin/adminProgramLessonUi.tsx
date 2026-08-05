@@ -403,6 +403,20 @@ export function BookItemBadge({
   );
 }
 
+type AddVideoDraft = {
+  type: 'upload' | 'embed';
+  label: string;
+  fileName?: string;
+  fileUrl?: string;
+  embedUrl: string;
+};
+
+const emptyAddVideoDraft = (): AddVideoDraft => ({
+  type: 'upload',
+  label: '',
+  embedUrl: ''
+});
+
 export function VideoItemsEditor({
   videos,
   onChange
@@ -410,18 +424,48 @@ export function VideoItemsEditor({
   videos: VideoMediaItem[];
   onChange: (videos: VideoMediaItem[]) => void;
 }) {
-  const add = (type: 'upload' | 'embed') => {
+  const [addOpen, setAddOpen] = useState(false);
+  const [draft, setDraft] = useState<AddVideoDraft>(emptyAddVideoDraft);
+
+  const openAddForm = () => {
+    setDraft(emptyAddVideoDraft());
+    setAddOpen(true);
+  };
+
+  const closeAddForm = () => {
+    setAddOpen(false);
+    setDraft(emptyAddVideoDraft());
+  };
+
+  const submitAdd = () => {
+    const label =
+      draft.label.trim() ||
+      (draft.type === 'upload' ? 'New video' : 'Embedded video');
+
+    if (draft.type === 'upload' && !draft.fileName) {
+      toast.error('Please upload a video file');
+      return;
+    }
+    if (draft.type === 'embed' && !draft.embedUrl.trim()) {
+      toast.error('Please enter an embed URL');
+      return;
+    }
+
     onChange([
       ...videos,
       {
         id: `vm-${Date.now()}`,
-        label: type === 'upload' ? 'New video' : 'Embedded video',
+        label,
         order: videos.length + 1,
-        type,
-        ...(type === 'embed' ? { embedUrl: '' } : {})
+        type: draft.type,
+        ...(draft.type === 'upload'
+          ? { fileName: draft.fileName, fileUrl: draft.fileUrl }
+          : { embedUrl: draft.embedUrl.trim() })
       }
     ]);
+    closeAddForm();
   };
+
   const update = (id: string, patch: Partial<VideoMediaItem>) => {
     onChange(videos.map((v) => (v.id === id ? { ...v, ...patch } : v)));
   };
@@ -432,32 +476,114 @@ export function VideoItemsEditor({
 
   return (
     <div className="border-t border-border pt-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-bold text-text-muted uppercase tracking-wider">
-          Videos in this topic
-        </p>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={() => add('upload')}
-            className="h-8 px-2 rounded-lg border border-border text-xs font-bold flex items-center gap-1">
-            <Upload className="w-3 h-3" />
-            Upload
-          </button>
-          <button
-            type="button"
-            onClick={() => add('embed')}
-            className="h-8 px-2 rounded-lg border border-border text-xs font-bold flex items-center gap-1">
-            <Link2 className="w-3 h-3" />
-            Embed
-          </button>
+      <ItemListHeader
+        title="Videos in this topic"
+        onAdd={openAddForm}
+        addLabel="Add video"
+      />
+
+      {addOpen && (
+        <div className="mb-3 p-3 rounded-xl bg-surface-2 border border-border flex flex-col gap-3">
+          <p className="text-sm font-bold text-text">Add video</p>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setDraft((d) => ({
+                  ...d,
+                  type: 'upload',
+                  embedUrl: ''
+                }))
+              }
+              className={`h-10 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${
+                draft.type === 'upload'
+                  ? 'bg-primary/10 text-primary border-primary/40'
+                  : 'bg-surface border-border text-text-muted hover:bg-surface-2'
+              }`}>
+              <Upload className="w-3.5 h-3.5" />
+              Upload a video
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setDraft((d) => ({
+                  ...d,
+                  type: 'embed',
+                  fileName: undefined,
+                  fileUrl: undefined
+                }))
+              }
+              className={`h-10 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${
+                draft.type === 'embed'
+                  ? 'bg-primary/10 text-primary border-primary/40'
+                  : 'bg-surface border-border text-text-muted hover:bg-surface-2'
+              }`}>
+              <Link2 className="w-3.5 h-3.5" />
+              Embed a video link
+            </button>
+          </div>
+
+          <Field label="Video title">
+            <input
+              type="text"
+              value={draft.label}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, label: e.target.value }))
+              }
+              placeholder={
+                draft.type === 'upload' ? 'New video' : 'Embedded video'
+              }
+              className="w-full h-9 px-3 rounded-lg bg-surface border border-border text-sm"
+            />
+          </Field>
+
+          {draft.type === 'upload' ? (
+            <FileUploadRow
+              label="video"
+              accept="video/*"
+              fileName={draft.fileName}
+              onPick={(fileName, fileUrl) =>
+                setDraft((d) => ({ ...d, fileName, fileUrl }))
+              }
+            />
+          ) : (
+            <Field label="Embed URL" required>
+              <input
+                type="url"
+                value={draft.embedUrl}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, embedUrl: e.target.value }))
+                }
+                placeholder="https://youtube.com/... or Vimeo URL"
+                className="w-full h-9 px-3 rounded-lg bg-surface border border-border text-sm"
+              />
+            </Field>
+          )}
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={closeAddForm}
+              className="h-8 px-3 rounded-lg border border-border text-xs font-bold text-text-muted hover:bg-surface">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={submitAdd}
+              className="h-8 px-3 rounded-lg bg-primary text-white text-xs font-bold hover:opacity-90">
+              Add video
+            </button>
+          </div>
         </div>
-      </div>
-      {videos.length === 0 ? (
+      )}
+
+      {videos.length === 0 && !addOpen ? (
         <p className="text-xs text-text-muted text-center py-4 border border-dashed border-border rounded-xl">
-          Add multiple videos under this topic. Reorder with arrows or the order field.
+          Add multiple videos under this topic. Reorder with arrows or the order
+          field.
         </p>
-      ) : (
+      ) : videos.length > 0 ? (
         <div className="flex flex-col gap-3">
           {sorted.map((item) => (
             <div
@@ -517,7 +643,7 @@ export function VideoItemsEditor({
             </div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

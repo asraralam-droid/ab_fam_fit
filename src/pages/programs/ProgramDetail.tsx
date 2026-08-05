@@ -157,6 +157,7 @@ export function ProgramDetail() {
   const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
   const [expandedBookId, setExpandedBookId] = useState<string | null>(null);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(() => new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (sectionId) return;
@@ -164,6 +165,13 @@ export function ProgramDetail() {
     setExpandedModules((prev) => {
       if (prev.size > 0) return prev;
       return new Set([sortedModules[0].id]);
+    });
+    setExpandedSections((prev) => {
+      if (prev.size > 0) return prev;
+      const ids = sortedModules.flatMap((m) =>
+        sortedByOrder(m.sections ?? []).map((s) => s.id)
+      );
+      return new Set(ids);
     });
   }, [sectionId, sortedModules]);
 
@@ -222,13 +230,25 @@ export function ProgramDetail() {
     });
   };
 
+  const toggleSectionExpanded = (secId: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(secId)) next.delete(secId);
+      else next.add(secId);
+      return next;
+    });
+  };
+
   const renderCurriculumLessonRow = (
     secId: string,
     row: CurriculumRow,
-    isLast: boolean
+    isLast: boolean,
+    locked = false
   ) => {
     const done =
-      enrolled && isComplete(completedItemKeys, row.completeKey, row.legacyKey);
+      !locked &&
+      enrolled &&
+      isComplete(completedItemKeys, row.completeKey, row.legacyKey);
     const KindIcon = row.KindIcon;
     const metaDisplay = row.meta.replace(/ · /g, ' · ');
     return (
@@ -236,17 +256,22 @@ export function ProgramDetail() {
         key={row.id}
         type="button"
         onClick={() => handleLessonOpen(secId, row.tab)}
-        className={`w-full px-4 py-3.5 flex items-center gap-3 hover:bg-surface-2 transition-colors text-left ${
-          !isLast ? 'border-b border-border/70' : ''
-        }`}>
-        {done ? (
+        aria-disabled={locked}
+        className={`w-full px-4 py-3.5 flex items-center gap-3 transition-colors text-left ${
+          locked
+            ? 'opacity-55 cursor-not-allowed'
+            : 'hover:bg-surface-2'
+        } ${!isLast ? 'border-b border-border/70' : ''}`}>
+        {locked ? (
+          <Lock className="w-5 h-5 text-text-muted flex-shrink-0" />
+        ) : done ? (
           <CheckCircle2 className="w-6 h-6 text-accent-sage flex-shrink-0" />
         ) : (
           <Circle className="w-6 h-6 text-text-muted/45 flex-shrink-0" strokeWidth={1.5} />
         )}
         <KindIcon className="w-5 h-5 text-text-muted flex-shrink-0" />
         <div className="flex-1 min-w-0 text-left">
-          <p className={`font-medium text-sm ${done ? 'text-text-muted' : 'text-text'}`}>
+          <p className={`font-medium text-sm ${done || locked ? 'text-text-muted' : 'text-text'}`}>
             {row.title}
           </p>
           <p className="text-[11px] text-text-muted mt-0.5 tracking-wide">{metaDisplay}</p>
@@ -398,6 +423,7 @@ export function ProgramDetail() {
                                 now
                               });
                               const locked = !lock.unlocked;
+                              const secExpanded = expandedSections.has(sec.id);
                               const daysLeftLine = formatSectionDaysLeft(
                                 lock,
                                 enrolled,
@@ -414,61 +440,78 @@ export function ProgramDetail() {
                                 <div
                                   key={sec.id}
                                   className={secIdx > 0 ? 'border-t border-border' : ''}>
-                                  <div className="px-4 pt-4 pb-2">
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                                      {sectionCurriculumHeading(sec)}
-                                    </p>
-                                    {locked && (
-                                      <div className="mt-2 space-y-1">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                          <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-2 text-text-muted border border-border">
-                                            {formatSectionUnlockLabel(lock, enrolled)}
-                                          </span>
-                                          {resolveSectionLockDays(lockSections, sec) > 0 && (
-                                            <span className="text-[10px] text-text-muted">
-                                              {formatSectionLockDaysBadge(lockSections, sec)}{' '}
-                                              lock
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSectionExpanded(sec.id)}
+                                    className="w-full px-4 pt-4 pb-2 flex items-start justify-between gap-3 hover:bg-surface-2/60 transition-colors text-left">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                                        {sectionCurriculumHeading(sec)}
+                                      </p>
+                                      {locked && (
+                                        <div className="mt-2 space-y-1">
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-2 text-text-muted border border-border">
+                                              {formatSectionUnlockLabel(lock, enrolled)}
                                             </span>
+                                            {resolveSectionLockDays(lockSections, sec) > 0 && (
+                                              <span className="text-[10px] text-text-muted">
+                                                {formatSectionLockDaysBadge(lockSections, sec)}{' '}
+                                                lock
+                                              </span>
+                                            )}
+                                          </div>
+                                          {daysLeftLine && (
+                                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                                              {daysLeftLine}
+                                            </p>
+                                          )}
+                                          {lockDetail && (
+                                            <p className="text-[10px] text-text-muted">
+                                              {lockDetail}
+                                            </p>
                                           )}
                                         </div>
-                                        {daysLeftLine && (
-                                          <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
-                                            {daysLeftLine}
-                                          </p>
-                                        )}
-                                        {lockDetail && (
-                                          <p className="text-[10px] text-text-muted">{lockDetail}</p>
-                                        )}
-                                        {!rows.length && lock.unlocksAt && enrolled && (
-                                          <p className="text-[10px] text-text-muted">
-                                            No content yet · Opens {formatUnlockDate(lock.unlocksAt)}
-                                          </p>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                  {locked ? (
-                                    <div className="px-4 pb-4 flex items-center gap-2 text-text-muted">
-                                      <Lock className="w-4 h-4 shrink-0" />
-                                      <p className="text-xs">
-                                        {daysLeftLine ?? 'Complete previous sections to unlock'}
-                                      </p>
-                                    </div>
-                                  ) : rows.length === 0 ? (
-                                    <p className="px-4 pb-4 text-sm text-text-muted">
-                                      No lessons in this section yet.
-                                    </p>
-                                  ) : (
-                                    <div className="pb-1">
-                                      {rows.map((row, rowIdx) =>
-                                        renderCurriculumLessonRow(
-                                          sec.id,
-                                          row,
-                                          rowIdx === rows.length - 1
-                                        )
                                       )}
                                     </div>
-                                  )}
+                                    {secExpanded ? (
+                                      <ChevronUp className="w-4 h-4 text-text-muted shrink-0 mt-0.5" />
+                                    ) : (
+                                      <ChevronDown className="w-4 h-4 text-text-muted shrink-0 mt-0.5" />
+                                    )}
+                                  </button>
+
+                                  <AnimatePresence initial={false}>
+                                    {secExpanded && (
+                                      <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden">
+                                        {rows.length === 0 ? (
+                                          <p className="px-4 pb-4 text-sm text-text-muted">
+                                            {locked
+                                              ? lock.unlocksAt && enrolled
+                                                ? `No content yet · Opens ${formatUnlockDate(lock.unlocksAt)}`
+                                                : daysLeftLine ??
+                                                  'Complete previous sections to unlock'
+                                              : 'No lessons in this section yet.'}
+                                          </p>
+                                        ) : (
+                                          <div className="pb-1">
+                                            {rows.map((row, rowIdx) =>
+                                              renderCurriculumLessonRow(
+                                                sec.id,
+                                                row,
+                                                rowIdx === rows.length - 1,
+                                                locked
+                                              )
+                                            )}
+                                          </div>
+                                        )}
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
                                 </div>
                               );
                             })
