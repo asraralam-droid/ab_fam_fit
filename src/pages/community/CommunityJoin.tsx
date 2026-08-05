@@ -6,7 +6,10 @@ import { toast } from 'sonner';
 import type { RootState } from '../../store';
 import { communitySlice } from '../../store/communitySlice';
 import { AB_PRODUCT_JOURNEY } from '../../utils/membershipAccess';
-import { PILLAR_ASSESSMENTS, type AbPillarId } from '../../utils/abPillars';
+import {
+  PILLAR_ASSESSMENTS,
+  type CommunityPillarId
+} from '../../utils/abPillars';
 
 type Step = 'intro' | 'assessment' | 'payment' | 'done';
 
@@ -24,7 +27,7 @@ export function CommunityJoin() {
   const [paying, setPaying] = useState(false);
 
   const assessmentQs = useMemo(() => {
-    const pillar = group?.pillarId as AbPillarId | null | undefined;
+    const pillar = group?.pillarId as CommunityPillarId | null | undefined;
     if (!pillar) return PILLAR_ASSESSMENTS['health-wellness'].slice(0, 2);
     return PILLAR_ASSESSMENTS[pillar] ?? [];
   }, [group?.pillarId]);

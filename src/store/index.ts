@@ -318,16 +318,36 @@ function loadPreloadedState(): any {
       }
     }
     if (state?.onboarding) {
+      const legacyToNew: Record<string, string> = {
+        'health-wellness': 'authentic-body',
+        'health-fitness': 'authentic-body',
+        nutrition: 'authentic-body',
+        'family-community': 'authentic-body',
+        business: 'authentic-business',
+        'financial-business': 'authentic-business',
+        'life-coaching': 'authentic-brain',
+        'mental-coaching': 'authentic-brain',
+        emotional: 'authentic-brain',
+        'purpose-spiritual': 'authentic-brain'
+      };
+      const validPillars = new Set([
+        'authentic-body',
+        'authentic-brain',
+        'authentically-becoming',
+        'authentic-behavior',
+        'authentic-bonding',
+        'authentic-beauty',
+        'authentic-business'
+      ]);
       state.onboarding.pillars = (state.onboarding.pillars ?? [])
-        .map((p: string) => {
-          if (p === 'health-fitness' || p === 'nutrition') return 'health-wellness';
-          if (p === 'financial-business') return 'business';
-          if (p === 'mental-coaching' || p === 'emotional') return 'life-coaching';
-          return p;
-        })
-        .filter((p: string) =>
-          ['health-wellness', 'business', 'life-coaching'].includes(p)
-        );
+        .map((p: string) => legacyToNew[p] ?? p)
+        .filter((p: string) => validPillars.has(p));
+      state.onboarding.behavioralStage =
+        state.onboarding.behavioralStage ?? null;
+      state.onboarding.identityRole = state.onboarding.identityRole ?? null;
+      state.onboarding.improveAreas = state.onboarding.improveAreas ?? [];
+      state.onboarding.biggestObstacle =
+        state.onboarding.biggestObstacle ?? '';
       state.onboarding.assessments = state.onboarding.assessments ?? {};
       state.onboarding.fitnessFollowUp =
         state.onboarding.fitnessFollowUp ?? null;

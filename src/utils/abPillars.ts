@@ -1,92 +1,110 @@
-/** Authentic Balance Institute — primary pillars for onboarding & community access. */
-export type AbPillarId = 'health-wellness' | 'business' | 'life-coaching';
+/** Authentic Balance Institute — 7 Authentic pillars for onboarding & community access. */
+export type AbPillarId =
+  | 'authentic-body'
+  | 'authentic-brain'
+  | 'authentically-becoming'
+  | 'authentic-behavior'
+  | 'authentic-bonding'
+  | 'authentic-beauty'
+  | 'authentic-business';
+
+/** Community groups still use these three access buckets. */
+export type CommunityPillarId =
+  | 'health-wellness'
+  | 'business'
+  | 'life-coaching';
 
 export interface AbPillar {
   id: AbPillarId;
   label: string;
   description: string;
   communityId: string;
+  communityPillarId: CommunityPillarId;
 }
 
 export const AB_PILLARS: AbPillar[] = [
   {
-    id: 'health-wellness',
-    label: 'Health & Wellness',
-    description: 'Fitness, nutrition, juicing, and physical vitality',
-    communityId: 'g-health'
+    id: 'authentic-body',
+    label: 'Authentic Body',
+    description: 'Physical health, energy, and vitality',
+    communityId: 'g-health',
+    communityPillarId: 'health-wellness'
   },
   {
-    id: 'business',
-    label: 'Business',
-    description: 'Consulting, systems, automation, and growth',
-    communityId: 'g-business'
+    id: 'authentic-brain',
+    label: 'Authentic Brain',
+    description: 'Mindset, clarity, and mental focus',
+    communityId: 'g-coaching',
+    communityPillarId: 'life-coaching'
   },
   {
-    id: 'life-coaching',
-    label: 'Life Coaching / Mental Wellness',
-    description: 'Mindset, clarity, emotional balance, and life transitions',
-    communityId: 'g-coaching'
+    id: 'authentically-becoming',
+    label: 'Authentically Becoming',
+    description: 'Growth, purpose, and who you are becoming',
+    communityId: 'g-coaching',
+    communityPillarId: 'life-coaching'
+  },
+  {
+    id: 'authentic-behavior',
+    label: 'Authentic Behavior',
+    description: 'Habits, discipline, and consistent action',
+    communityId: 'g-coaching',
+    communityPillarId: 'life-coaching'
+  },
+  {
+    id: 'authentic-bonding',
+    label: 'Authentic Bonding',
+    description: 'Relationships, connection, and community',
+    communityId: 'g-coaching',
+    communityPillarId: 'life-coaching'
+  },
+  {
+    id: 'authentic-beauty',
+    label: 'Authentic Beauty',
+    description: 'Confidence, presence, and self-expression',
+    communityId: 'g-health',
+    communityPillarId: 'health-wellness'
+  },
+  {
+    id: 'authentic-business',
+    label: 'Authentic Business',
+    description: 'Leadership, systems, and enterprise growth',
+    communityId: 'g-business',
+    communityPillarId: 'business'
   }
 ];
 
-export const FITNESS_CHALLENGE_OPTIONS = [
-  'Weight management',
-  'Low energy',
-  'Inconsistent habits',
-  'Gut / digestion',
-  'Post-pregnancy recovery',
-  'Other'
-];
+export const BEHAVIORAL_STAGE_OPTIONS = [
+  "I'm just getting started.",
+  "I've started before but struggle with consistency.",
+  "I'm doing well but want accountability.",
+  "I'm ready to grow to the next level."
+] as const;
 
-export const FITNESS_GOAL_OPTIONS = [
-  'Lose weight',
-  'Build strength',
-  'Feel more energized',
-  'Create lasting habits',
-  'Prepare for a challenge'
-];
+export const IDENTITY_ROLE_OPTIONS = [
+  'Individual',
+  'Entrepreneur',
+  'Business Owner',
+  'Nonprofit Leader',
+  'Organizational Leader',
+  'Community Leader'
+] as const;
 
-export const FITNESS_OUTCOME_OPTIONS = [
-  'Clear meal / juice plan',
-  'Daily accountability',
-  'Sustainable lifestyle change',
-  'Challenge-ready body'
-];
+export const IMPROVE_AREA_OPTIONS = [
+  'My health',
+  'My mindset',
+  'My habits',
+  'My relationships',
+  'My confidence',
+  'My leadership',
+  'My business',
+  'My organization',
+  'My community'
+] as const;
 
-export const BUSINESS_TYPE_OPTIONS = [
-  'For-profit',
-  'Non-profit',
-  'Solopreneur',
-  'Small team',
-  'Scaling company'
-];
-
-export const BUSINESS_CONSULTING_OPTIONS = [
-  'Front-end strategy & offers',
-  'Brand & client experience',
-  'Operations consulting',
-  'Team / leadership'
-];
-
-export const BUSINESS_AUTOMATION_OPTIONS = [
-  'CRM / funnel automation',
-  'Back-office workflows',
-  'Scheduling & billing',
-  'Custom build-outs'
-];
-
-export const MENTAL_FOCUS_OPTIONS = [
-  'Clarity & focus',
-  'Stress management',
-  'Confidence',
-  'Life transitions',
-  'Accountability',
-  'Emotional regulation'
-];
-
-/** Short assessments scored 1–5 per pillar. */
+/** Short assessments scored 1–5 per community pillar (used when joining a space). */
 export const PILLAR_ASSESSMENTS: Record<
-  AbPillarId,
+  CommunityPillarId,
   { id: string; prompt: string }[]
 > = {
   'health-wellness': [
@@ -106,54 +124,115 @@ export const PILLAR_ASSESSMENTS: Record<
   ]
 };
 
-export function needsFitnessFollowUp(pillars: AbPillarId[]) {
-  return pillars.includes('health-wellness');
+export function pillarById(id: AbPillarId) {
+  return AB_PILLARS.find((p) => p.id === id);
 }
 
-export function needsBusinessFollowUp(pillars: AbPillarId[]) {
-  return pillars.includes('business');
-}
-
-export function needsMentalFollowUp(pillars: AbPillarId[]) {
-  return pillars.includes('life-coaching');
+export function toCommunityPillar(
+  id: AbPillarId | string
+): CommunityPillarId | null {
+  const pillar = AB_PILLARS.find((p) => p.id === id);
+  if (pillar) return pillar.communityPillarId;
+  if (
+    id === 'health-wellness' ||
+    id === 'business' ||
+    id === 'life-coaching'
+  ) {
+    return id;
+  }
+  return null;
 }
 
 export function primaryDashboardMode(
   pillars: string[]
 ): 'fitness' | 'business' | 'coaching' | 'mixed' {
-  const hasH = pillars.includes('health-wellness');
-  const hasB = pillars.includes('business');
-  const hasC = pillars.includes('life-coaching');
-  const count = [hasH, hasB, hasC].filter(Boolean).length;
-  if (count > 1) return 'mixed';
-  if (hasB) return 'business';
-  if (hasC) return 'coaching';
+  const modes = new Set(
+    pillars
+      .map((p) => toCommunityPillar(p))
+      .filter((p): p is CommunityPillarId => !!p)
+      .map((p) =>
+        p === 'business' ? 'business' : p === 'life-coaching' ? 'coaching' : 'fitness'
+      )
+  );
+  if (modes.size > 1) return 'mixed';
+  if (modes.has('business')) return 'business';
+  if (modes.has('coaching')) return 'coaching';
   return 'fitness';
 }
 
-export function pillarById(id: AbPillarId) {
-  return AB_PILLARS.find((p) => p.id === id);
+export function hasFitnessPillar(pillars: string[]) {
+  return pillars.some((p) => toCommunityPillar(p) === 'health-wellness');
+}
+
+export function hasBusinessPillar(pillars: string[]) {
+  return pillars.some((p) => toCommunityPillar(p) === 'business');
+}
+
+export function hasCoachingPillar(pillars: string[]) {
+  return pillars.some((p) => toCommunityPillar(p) === 'life-coaching');
+}
+
+/** Build business dashboard follow-up from the new onboarding answers. */
+export function buildBusinessFollowUpFromAnswers(input: {
+  identityRole: string;
+  improveAreas: string[];
+  biggestObstacle: string;
+}) {
+  const consultingKeys = new Set([
+    'My business',
+    'My leadership',
+    'My organization',
+    'My community',
+    'My confidence'
+  ]);
+  const automationKeys = new Set([
+    'My habits',
+    'My organization',
+    'My business'
+  ]);
+
+  const consultingNeeds = input.improveAreas.filter((a) =>
+    consultingKeys.has(a)
+  );
+  const automationNeeds = input.improveAreas.filter((a) =>
+    automationKeys.has(a)
+  );
+
+  return {
+    orgType: input.identityRole || 'Business',
+    consultingNeeds:
+      consultingNeeds.length > 0 ?
+        consultingNeeds :
+        ['Business growth strategy'],
+    automationNeeds:
+      automationNeeds.length > 0 ?
+        automationNeeds :
+        ['Systems & workflows'],
+    notes: input.biggestObstacle.trim()
+  };
 }
 
 /** Map legacy pillar ids from earlier prototype builds. */
 export function normalizePillarId(id: string): AbPillarId | null {
-  if (id === 'health-wellness' || id === 'business' || id === 'life-coaching') {
-    return id;
-  }
+  if (AB_PILLARS.some((p) => p.id === id)) return id as AbPillarId;
   if (
+    id === 'health-wellness' ||
     id === 'health-fitness' ||
     id === 'nutrition' ||
     id === 'family-community'
   ) {
-    return 'health-wellness';
+    return 'authentic-body';
   }
-  if (id === 'financial-business') return 'business';
+  if (id === 'business' || id === 'financial-business') {
+    return 'authentic-business';
+  }
   if (
+    id === 'life-coaching' ||
     id === 'mental-coaching' ||
     id === 'emotional' ||
     id === 'purpose-spiritual'
   ) {
-    return 'life-coaching';
+    return 'authentic-brain';
   }
   return null;
 }

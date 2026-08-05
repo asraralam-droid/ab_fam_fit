@@ -92,8 +92,16 @@ export interface OnboardingMentalFollowUp {
 }
 export interface OnboardingState {
   completed: boolean;
-  /** Selected Authentic Balance pillars (multi-select). */
+  /** Starting Authentic pillar (single choice stored as a one-item array for compat). */
   pillars: string[];
+  /** Behavioral segmentation answer. */
+  behavioralStage: string | null;
+  /** Identity / role answer (drives future recommendations). */
+  identityRole: string | null;
+  /** 90-day improvement areas (multi-select). */
+  improveAreas: string[];
+  /** Biggest obstacle (open text). */
+  biggestObstacle: string;
   goals: string[];
   dietary: string[];
   currentWeight: number | null;
@@ -107,6 +115,10 @@ export interface OnboardingState {
 const initialOnboardingState: OnboardingState = {
   completed: false,
   pillars: [],
+  behavioralStage: null,
+  identityRole: null,
+  improveAreas: [],
+  biggestObstacle: '',
   goals: [],
   dietary: [],
   currentWeight: null,

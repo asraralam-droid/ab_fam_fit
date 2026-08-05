@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../store';
@@ -25,6 +25,9 @@ import { toast } from 'sonner';
 import { normalizeAdminProgram } from '../../store/adminProgramsSlice';
 import { computeEnrolledLearningProgress } from '../../utils/programDisplay';
 import {
+  hasBusinessPillar,
+  hasCoachingPillar,
+  hasFitnessPillar,
   normalizePillarId,
   primaryDashboardMode,
   type AbPillarId
@@ -56,7 +59,10 @@ export function Dashboard() {
     businessFollowUp,
     fitnessFollowUp,
     mentalFollowUp,
-    assessments
+    assessments,
+    identityRole,
+    improveAreas,
+    biggestObstacle
   } = useSelector((state: RootState) => state.onboarding);
   const { dailyLogs } = useSelector((state: RootState) => state.challenges);
   const { tier } = useSelector((state: RootState) => state.membership);
@@ -65,11 +71,12 @@ export function Dashboard() {
     const mapped = pillars
       .map((p) => normalizePillarId(p))
       .filter((p): p is AbPillarId => !!p);
-    if (!mapped.length && businessFollowUp) return ['business'] as AbPillarId[];
+    if (!mapped.length && businessFollowUp)
+      return ['authentic-business'] as AbPillarId[];
     if (!mapped.length && mentalFollowUp)
-      return ['life-coaching'] as AbPillarId[];
+      return ['authentic-brain'] as AbPillarId[];
     if (!mapped.length && fitnessFollowUp)
-      return ['health-wellness'] as AbPillarId[];
+      return ['authentic-body'] as AbPillarId[];
     return mapped;
   }, [pillars, businessFollowUp, mentalFollowUp, fitnessFollowUp]);
 
@@ -78,9 +85,10 @@ export function Dashboard() {
     : 'fitness';
   const availableViews = useMemo(() => {
     const views: DashView[] = [];
-    if (normalizedPillars.includes('health-wellness')) views.push('fitness');
-    if (normalizedPillars.includes('business')) views.push('business');
-    if (normalizedPillars.includes('life-coaching')) views.push('coaching');
+    // Prefer business first when that is the starting pillar
+    if (hasBusinessPillar(normalizedPillars)) views.push('business');
+    if (hasFitnessPillar(normalizedPillars)) views.push('fitness');
+    if (hasCoachingPillar(normalizedPillars)) views.push('coaching');
     return views;
   }, [normalizedPillars]);
 
@@ -91,15 +99,47 @@ export function Dashboard() {
         ? 'coaching'
         : mode === 'mixed'
           ? availableViews[0] ?? 'fitness'
-          : 'fitness';
+          : availableViews[0] ?? 'fitness';
 
   const [activeView, setActiveView] = useState<DashView>(defaultView);
+
+  useEffect(() => {
+    if (!availableViews.length) return;
+    if (!availableViews.includes(activeView)) {
+      setActiveView(defaultView);
+      return;
+    }
+    // Keep Authentic Business users on the business dashboard by default
+    if (mode === 'business' && activeView !== 'business') {
+      setActiveView('business');
+    }
+  }, [availableViews, defaultView, mode, activeView]);
+
   const view =
     availableViews.length === 0
-      ? 'fitness'
+      ? defaultView
       : availableViews.includes(activeView)
         ? activeView
         : defaultView;
+
+  const businessOrgType =
+    businessFollowUp?.orgType || identityRole || 'Authentic Business';
+  const businessConsultingNeeds =
+    businessFollowUp?.consultingNeeds?.length ?
+      businessFollowUp.consultingNeeds :
+      improveAreas.filter((a) =>
+        ['My business', 'My leadership', 'My organization', 'My community'].includes(
+          a
+        )
+      );
+  const businessAutomationNeeds =
+    businessFollowUp?.automationNeeds?.length ?
+      businessFollowUp.automationNeeds :
+      improveAreas.filter((a) =>
+        ['My habits', 'My organization', 'My business'].includes(a)
+      );
+  const businessNotes =
+    businessFollowUp?.notes || biggestObstacle || '';
 
   const enrolledIds = Array.isArray(rawEnrolled) ? rawEnrolled : [];
   const enrolledAtMap =
@@ -123,11 +163,11 @@ export function Dashboard() {
   const weekData = [4, 6, 8, 7, 8, 5, 8];
   const completionRate = learning.percent;
 
-  const consultingProgress = businessFollowUp?.consultingNeeds?.length
-    ? Math.min(90, businessFollowUp.consultingNeeds.length * 28)
+  const consultingProgress = businessConsultingNeeds.length
+    ? Math.min(90, businessConsultingNeeds.length * 28)
     : 35;
-  const automationProgress = businessFollowUp?.automationNeeds?.length
-    ? Math.min(90, businessFollowUp.automationNeeds.length * 30)
+  const automationProgress = businessAutomationNeeds.length
+    ? Math.min(90, businessAutomationNeeds.length * 30)
     : 20;
 
   const weightProgress =
@@ -279,10 +319,10 @@ export function Dashboard() {
           <BusinessDashboard
             consultingProgress={consultingProgress}
             automationProgress={automationProgress}
-            orgType={businessFollowUp?.orgType || ''}
-            consultingNeeds={businessFollowUp?.consultingNeeds ?? []}
-            automationNeeds={businessFollowUp?.automationNeeds ?? []}
-            notes={businessFollowUp?.notes || ''}
+            orgType={businessOrgType}
+            consultingNeeds={businessConsultingNeeds}
+            automationNeeds={businessAutomationNeeds}
+            notes={businessNotes}
             journeyDay={journeyDay}
             learningCompleted={learning.completed}
             learningTotal={learning.total}

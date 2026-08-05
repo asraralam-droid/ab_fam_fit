@@ -37,6 +37,7 @@ import {
   type AbPillarId
 } from '../../utils/abPillars';
 
+
 export function Home() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -53,8 +54,15 @@ export function Home() {
   const { tier } = useSelector(
     (state: RootState) => state.membership
   );
-  const { pillars, businessFollowUp, mentalFollowUp, fitnessFollowUp } =
-    useSelector((state: RootState) => state.onboarding);
+  const {
+    pillars,
+    businessFollowUp,
+    mentalFollowUp,
+    fitnessFollowUp,
+    identityRole,
+    improveAreas,
+    biggestObstacle
+  } = useSelector((state: RootState) => state.onboarding);
   const { entries } = useSelector((state: RootState) => state.checkIn);
   const { quotes, quoteDisplayMode } = useSelector(
     (state: RootState) => state.content
@@ -65,11 +73,12 @@ export function Home() {
       .map((p) => normalizePillarId(p))
       .filter((p): p is AbPillarId => !!p);
     // Infer from follow-ups if pillars weren't persisted
-    if (!mapped.length && businessFollowUp) return ['business'] as AbPillarId[];
+    if (!mapped.length && businessFollowUp)
+      return ['authentic-business'] as AbPillarId[];
     if (!mapped.length && mentalFollowUp)
-      return ['life-coaching'] as AbPillarId[];
+      return ['authentic-brain'] as AbPillarId[];
     if (!mapped.length && fitnessFollowUp)
-      return ['health-wellness'] as AbPillarId[];
+      return ['authentic-body'] as AbPillarId[];
     return mapped;
   }, [pillars, businessFollowUp, mentalFollowUp, fitnessFollowUp]);
 
@@ -87,6 +96,25 @@ export function Home() {
     !needsPillarSetup &&
     (homeMode === 'coaching' || homeMode === 'mixed');
 
+  const businessOrgType =
+    businessFollowUp?.orgType || identityRole || 'Authentic Business';
+  const businessConsultingNeeds =
+    businessFollowUp?.consultingNeeds?.length ?
+      businessFollowUp.consultingNeeds :
+      improveAreas.filter((a) =>
+        ['My business', 'My leadership', 'My organization', 'My community'].includes(
+          a
+        )
+      );
+  const businessAutomationNeeds =
+    businessFollowUp?.automationNeeds?.length ?
+      businessFollowUp.automationNeeds :
+      improveAreas.filter((a) =>
+        ['My habits', 'My organization', 'My business'].includes(a)
+      );
+  const businessNotes =
+    businessFollowUp?.notes || biggestObstacle || '';
+
   const canAccessLessons = canAccessFeature(tier, 'structuredLessons', {
     role: user?.role
   });
@@ -99,11 +127,11 @@ export function Home() {
   const [showJournal, setShowJournal] = useState(false);
   const [journalVisibleCount, setJournalVisibleCount] = useState(4);
 
-  const consultingProgress = businessFollowUp?.consultingNeeds?.length
-    ? Math.min(90, businessFollowUp.consultingNeeds.length * 28)
+  const consultingProgress = businessConsultingNeeds.length
+    ? Math.min(90, businessConsultingNeeds.length * 28)
     : 35;
-  const automationProgress = businessFollowUp?.automationNeeds?.length
-    ? Math.min(90, businessFollowUp.automationNeeds.length * 30)
+  const automationProgress = businessAutomationNeeds.length
+    ? Math.min(90, businessAutomationNeeds.length * 30)
     : 20;
 
   const handleWaterTap = () => {
@@ -226,7 +254,7 @@ export function Home() {
                   <div className="flex items-center gap-2">
                     <Briefcase className="w-5 h-5 text-primary" />
                     <span className="text-sm font-bold text-text">
-                      {businessFollowUp?.orgType || 'Business track'}
+                      {businessOrgType}
                     </span>
                   </div>
                   <span className="text-lg font-bold text-primary">
@@ -240,8 +268,8 @@ export function Home() {
                   />
                 </div>
                 <p className="text-xs text-text-muted">
-                  {(businessFollowUp?.consultingNeeds?.length
-                    ? businessFollowUp.consultingNeeds
+                  {(businessConsultingNeeds.length
+                    ? businessConsultingNeeds
                     : ['Front-end strategy', 'Client experience']
                   ).join(' · ')}
                 </p>
@@ -254,14 +282,14 @@ export function Home() {
               </h3>
               <div className="bg-surface rounded-2xl border border-border p-4 shadow-sm space-y-3">
                 {[
-                  businessFollowUp?.consultingNeeds?.[0]
-                    ? `Advance: ${businessFollowUp.consultingNeeds[0]}`
+                  businessConsultingNeeds[0]
+                    ? `Advance: ${businessConsultingNeeds[0]}`
                     : 'Define consulting priorities',
-                  businessFollowUp?.automationNeeds?.[0]
-                    ? `Automate: ${businessFollowUp.automationNeeds[0]}`
+                  businessAutomationNeeds[0]
+                    ? `Automate: ${businessAutomationNeeds[0]}`
                     : 'Map automation opportunities',
-                  businessFollowUp?.notes
-                    ? `Note: ${businessFollowUp.notes}`
+                  businessNotes
+                    ? `Note: ${businessNotes}`
                     : 'Document business goals for Misty'
                 ].map((step, i) => (
                   <div key={step} className="flex items-start gap-3">
@@ -281,8 +309,8 @@ export function Home() {
                     Automation progress
                   </h3>
                   <p className="text-sm text-text-muted">
-                    {(businessFollowUp?.automationNeeds?.length
-                      ? businessFollowUp.automationNeeds
+                    {(businessAutomationNeeds.length
+                      ? businessAutomationNeeds
                       : ['Back-end build-outs']
                     ).join(' · ')}
                   </p>
