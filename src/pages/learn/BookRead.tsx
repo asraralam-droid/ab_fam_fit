@@ -11,10 +11,10 @@ const bookMeta: Record<
   }> =
 {
   'book-1': {
-    title: 'Juicing for Authentic Balance'
+    title: 'Authentic Foundation'
   },
   'book-2': {
-    title: 'The 30-Day Reset'
+    title: 'The Practice'
   },
   'book-3': {
     title: 'Maintaining the Lifestyle'

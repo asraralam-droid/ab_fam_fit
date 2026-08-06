@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { BRAND_MEDIA } from '../utils/brandMedia';
 
 /** PDF/audio items inside a book topic (ordered). */
 export interface BookPartItem {
@@ -127,6 +128,13 @@ export interface ProgramModule {
   description: string;
   order: number;
   imageUrl?: string;
+  /**
+   * Days after program payment/start before this module unlocks.
+   * 0 = Module 1.0 (Days 1–28), 28 = Module 2.0, 90 = Module 3.0, 120 = Module 4.0.
+   */
+  unlockAfterDays?: number;
+  /** Member-facing window label, e.g. "Days 1–28". */
+  timeWindow?: string;
   sections: ProgramSection[];
 }
 
@@ -137,6 +145,10 @@ export interface AdminProgram {
   description: string;
   active: boolean;
   coverImageUrl?: string;
+  /** Brand pillar this program belongs under (Pillar → Program → …). */
+  pillarId?: string;
+  /** One-time program price (USD). Pay once — not per module. */
+  priceUsd?: number;
   modules: ProgramModule[];
 }
 
@@ -174,21 +186,22 @@ interface AdminProgramsState {
   programs: AdminProgram[];
 }
 
-const JAB_COVER =
-  'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=600&q=80';
-const SECTION_IMG =
-  'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=600&q=80';
+const JAB_COVER = BRAND_MEDIA.greenJuice;
+/** Foundations / mindset modules — calm ritual, not plated food. */
+const SECTION_IMG = BRAND_MEDIA.journalCalm;
+const MODULE2_IMG = BRAND_MEDIA.welcomeLifestyle;
+const MODULE3_IMG = BRAND_MEDIA.yogaCalm;
+const MODULE4_IMG = BRAND_MEDIA.familyWellness;
 
 const jabSectionContent: Omit<ProgramSection, 'id' | 'title' | 'description' | 'order'> = {
   imageUrl: SECTION_IMG,
   bookLessons: [
     {
       id: 'bl1',
-      title: 'Book 1: The Foundation',
-      description: 'Building Your Authentic Balance.',
+      title: 'Book 1: Authentic Foundation',
+      description: 'Building Your Authentic Balance — mindset before meals.',
       order: 1,
-      coverImageUrl:
-        'https://images.unsplash.com/photo-1544716278-e513176f20b5?auto=format&fit=crop&w=200&q=80',
+      coverImageUrl: BRAND_MEDIA.bookStudy,
       topics: [
         {
           id: 'bt1',
@@ -227,6 +240,7 @@ const jabSectionContent: Omit<ProgramSection, 'id' | 'title' | 'description' | '
       title: 'Book 2: The Practice',
       description: 'Daily rituals and routines.',
       order: 2,
+      coverImageUrl: BRAND_MEDIA.greenJuice,
       topics: [
         {
           id: 'bt3',
@@ -257,7 +271,7 @@ const jabSectionContent: Omit<ProgramSection, 'id' | 'title' | 'description' | '
           label: 'Welcome message',
           order: 1,
           type: 'embed',
-          embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
+          embedUrl: 'https://www.youtube.com/embed/aqz-KE-bpKQ'
         }
       ]
     }
@@ -322,12 +336,16 @@ const initialState: AdminProgramsState = {
         'A comprehensive program teaching the Authentic Balance juicing methodology.',
       active: true,
       coverImageUrl: JAB_COVER,
+      pillarId: 'authentic-body',
+      priceUsd: 197,
       modules: [
         {
           id: 'mod-jab-1',
-          title: 'Foundations',
-          description: 'Core juicing curriculum.',
+          title: 'Authentic Foundation',
+          description: 'Module 1.0 — Days 1–28. Mindset & juicing foundations (unlocks on payment).',
           order: 1,
+          unlockAfterDays: 0,
+          timeWindow: 'Days 1–28',
           imageUrl: SECTION_IMG,
           sections: [
             {
@@ -344,22 +362,120 @@ const initialState: AdminProgramsState = {
         {
           id: 'mod-jab-2',
           title: 'Implementation',
-          description: 'Next steps after foundations.',
+          description: 'Module 2.0 — Days 29–56. Unlocks after the first 28 days.',
           order: 2,
-          imageUrl: SECTION_IMG,
+          unlockAfterDays: 28,
+          timeWindow: 'Days 29–56',
+          imageUrl: MODULE2_IMG,
           sections: [
             {
               id: 'sec-jab-2',
               title: 'Daily rituals',
-              description: 'Build on section 1 with timed unlock.',
+              description: 'Build habits through the second 28-day window.',
               order: 1,
-              lockDays: 15,
-              imageUrl: SECTION_IMG,
+              lockDays: 0,
+              imageUrl: MODULE2_IMG,
               bookLessons: [],
               videoLessons: [],
               audioLessons: [],
               imageLessons: [],
-              textLessons: []
+              textLessons: [
+                {
+                  id: 'tl-jab-2',
+                  title: 'Daily rituals intro',
+                  description: 'Opens with Module 2.0',
+                  order: 1,
+                  parts: [
+                    {
+                      id: 'tp-jab-2',
+                      label: 'Welcome to Module 2.0',
+                      order: 1,
+                      content:
+                        'Module 2.0 unlocks automatically after 28 days from program payment — no extra charge.'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'mod-jab-3',
+          title: 'Integration',
+          description: 'Module 3.0 — Day 90+. Unlocks after the Day 90 milestone.',
+          order: 3,
+          unlockAfterDays: 90,
+          timeWindow: 'Day 90+',
+          imageUrl: MODULE3_IMG,
+          sections: [
+            {
+              id: 'sec-jab-3',
+              title: '90-day checkpoint',
+              description: 'Integrate foundations into lasting practice.',
+              order: 1,
+              lockDays: 0,
+              imageUrl: MODULE3_IMG,
+              bookLessons: [],
+              videoLessons: [],
+              audioLessons: [],
+              imageLessons: [],
+              textLessons: [
+                {
+                  id: 'tl-jab-3',
+                  title: 'Day 90 checkpoint',
+                  description: '',
+                  order: 1,
+                  parts: [
+                    {
+                      id: 'tp-jab-3',
+                      label: 'Welcome to Module 3.0',
+                      order: 1,
+                      content:
+                        'Module 3.0 opens at the Day 90 milestone. Stay consistent through Modules 1 and 2.'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'mod-jab-4',
+          title: 'Mastery',
+          description: 'Module 4.0 — Day 120+. Unlocks after completing prior stages.',
+          order: 4,
+          unlockAfterDays: 120,
+          timeWindow: 'Day 120+',
+          imageUrl: MODULE4_IMG,
+          sections: [
+            {
+              id: 'sec-jab-4',
+              title: 'Sustain & lead',
+              description: 'Lock in mastery and lead your household forward.',
+              order: 1,
+              lockDays: 0,
+              imageUrl: MODULE4_IMG,
+              bookLessons: [],
+              videoLessons: [],
+              audioLessons: [],
+              imageLessons: [],
+              textLessons: [
+                {
+                  id: 'tl-jab-4',
+                  title: 'Day 120 mastery',
+                  description: '',
+                  order: 1,
+                  parts: [
+                    {
+                      id: 'tp-jab-4',
+                      label: 'Welcome to Module 4.0',
+                      order: 1,
+                      content:
+                        'Module 4.0 unlocks at Day 120 after prior modules. Full program was paid up front.'
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -367,11 +483,52 @@ const initialState: AdminProgramsState = {
     },
     {
       id: 'prog-test',
-      title: 'Testing Program',
-      subtitle: '',
-      description: '',
+      title: 'AB Fam Fit Foundations',
+      subtitle: 'By Misty Angelique',
+      description:
+        'Family-fit program under Authentic Body. Demo for program-level checkout (pay once — not per module).',
       active: true,
-      modules: []
+      coverImageUrl: BRAND_MEDIA.familyWellness,
+      pillarId: 'authentic-body',
+      priceUsd: 97,
+      modules: [
+        {
+          id: 'mod-fam-1',
+          title: 'Family Kickoff',
+          description: 'Shared habits for the household.',
+          order: 1,
+          sections: [
+            {
+              id: 'sec-fam-1',
+              title: 'Week 1 together',
+              description: 'Start your family rhythm.',
+              order: 1,
+              lockDays: 0,
+              bookLessons: [],
+              videoLessons: [],
+              audioLessons: [],
+              imageLessons: [],
+              textLessons: [
+                {
+                  id: 'tl-fam-1',
+                  title: 'Family kickoff note',
+                  description: 'Read together.',
+                  order: 1,
+                  parts: [
+                    {
+                      id: 'tp-fam-1',
+                      label: 'Welcome',
+                      order: 1,
+                      content:
+                        'Welcome to AB Fam Fit. This program is unlocked with one program payment — modules are not sold separately.'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 };
@@ -657,13 +814,40 @@ export function normalizeAdminProgram(raw: Record<string, unknown>): AdminProgra
   let modules: ProgramModule[];
 
   if (Array.isArray(raw.modules) && raw.modules.length) {
-    modules = (raw.modules as Record<string, unknown>[]).map((m, mi) =>
-      ensureModuleArrays({
+    modules = (raw.modules as Record<string, unknown>[]).map((m, mi) => {
+      const order = Number(m.order) || mi + 1;
+      const unlockRaw = m.unlockAfterDays;
+      const unlockAfterDays =
+        unlockRaw !== undefined && unlockRaw !== null
+          ? Math.max(0, Number(unlockRaw) || 0)
+          : order === 1
+            ? 0
+            : order === 2
+              ? 28
+              : order === 3
+                ? 90
+                : order === 4
+                  ? 120
+                  : (order - 1) * 28;
+      return ensureModuleArrays({
         id: String(m.id ?? `mod-${id}-${mi + 1}`),
         title: String(m.title ?? `Module ${mi + 1}`),
         description: String(m.description ?? ''),
-        order: Number(m.order) || mi + 1,
+        order,
         imageUrl: m.imageUrl as string | undefined,
+        unlockAfterDays,
+        timeWindow:
+          typeof m.timeWindow === 'string' && m.timeWindow.trim()
+            ? m.timeWindow.trim()
+            : order === 1
+              ? 'Days 1–28'
+              : order === 2
+                ? 'Days 29–56'
+                : order === 3
+                  ? 'Day 90+'
+                  : order === 4
+                    ? 'Day 120+'
+                    : undefined,
         sections: Array.isArray(m.sections)
           ? (m.sections as Record<string, unknown>[]).map((s, si) =>
               ensureSectionArrays(
@@ -671,8 +855,8 @@ export function normalizeAdminProgram(raw: Record<string, unknown>): AdminProgra
               )
             )
           : []
-      })
-    );
+      });
+    });
   } else {
     let sections: ProgramSection[];
     if (Array.isArray(raw.sections) && raw.sections.length) {
@@ -695,6 +879,21 @@ export function normalizeAdminProgram(raw: Record<string, unknown>): AdminProgra
     ];
   }
 
+  const pillarId =
+    typeof raw.pillarId === 'string' && raw.pillarId.trim()
+      ? raw.pillarId.trim()
+      : id === 'prog-jab'
+        ? 'authentic-body'
+        : undefined;
+
+  const priceRaw = raw.priceUsd;
+  const priceUsd =
+    typeof priceRaw === 'number' && Number.isFinite(priceRaw)
+      ? priceRaw
+      : id === 'prog-jab'
+        ? 197
+        : undefined;
+
   return {
     id,
     title: String(raw.title ?? ''),
@@ -702,6 +901,8 @@ export function normalizeAdminProgram(raw: Record<string, unknown>): AdminProgra
     description: String(raw.description ?? ''),
     active: raw.active !== false,
     coverImageUrl: raw.coverImageUrl as string | undefined,
+    pillarId,
+    priceUsd,
     modules
   };
 }
@@ -982,13 +1183,39 @@ export const adminProgramsSlice = createSlice({
       );
     },
     migratePrograms: (state) => {
-      state.programs = state.programs.map((p) =>
-        applySectionLockAnchors(
+      const seedJab = initialState.programs.find((p) => p.id === 'prog-jab');
+      state.programs = state.programs.map((p) => {
+        let normalized = applySectionLockAnchors(
           ensureProgramArrays(
             normalizeAdminProgram(p as unknown as Record<string, unknown>)
           )
-        )
-      );
+        );
+        // Demo: refresh JAB brand copy/covers + time-gated modules from seed.
+        if (normalized.id === 'prog-jab' && seedJab) {
+          normalized = {
+            ...normalized,
+            title: seedJab.title,
+            subtitle: seedJab.subtitle,
+            description: seedJab.description,
+            coverImageUrl: seedJab.coverImageUrl,
+            pillarId: seedJab.pillarId,
+            priceUsd: seedJab.priceUsd,
+            modules: seedJab.modules.map((seedMod) =>
+              ensureModuleArrays({ ...seedMod })
+            )
+          };
+        }
+        const seedFam = initialState.programs.find((p) => p.id === 'prog-test');
+        if (normalized.id === 'prog-test' && seedFam) {
+          normalized = {
+            ...normalized,
+            coverImageUrl: seedFam.coverImageUrl ?? normalized.coverImageUrl,
+            title: seedFam.title || normalized.title,
+            priceUsd: seedFam.priceUsd ?? normalized.priceUsd
+          };
+        }
+        return normalized;
+      });
     }
   }
 });

@@ -9,7 +9,7 @@ interface UpgradeGateProps {
 
 export function UpgradeGate({
   title = 'Coaching access required',
-  description = 'Your $77 book package includes books and self-guided tools. Unlock structured lessons, personalized guidance, or Misty coaching with an upgrade.',
+  description = 'Your program purchase unlocks the full curriculum (sections open by schedule, not per module) plus books and self-guided tools. Coaching and Misty challenges are separate upgrades.',
   compact = false
 }: UpgradeGateProps) {
   const navigate = useNavigate();

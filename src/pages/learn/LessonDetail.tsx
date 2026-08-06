@@ -113,7 +113,7 @@ export function LessonDetail() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="text-sm font-bold text-text-muted uppercase tracking-wider">
-          Module 1
+          Module 2
         </h1>
         <div className="w-10"></div>
       </div>
@@ -124,8 +124,8 @@ export function LessonDetail() {
           className="w-full aspect-video bg-black relative group cursor-pointer"
           onClick={() => setIsPlaying(!isPlaying)}>
           <img
-            src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=800&q=80"
-            alt="Lesson Video"
+            src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80"
+            alt="Understanding Your Gut"
             className={`w-full h-full object-cover transition-opacity duration-300 ${isPlaying ? 'opacity-50' : 'opacity-80'}`}
           />
           {!isPlaying && (
@@ -151,7 +151,7 @@ export function LessonDetail() {
           <p className="text-text-muted text-sm mb-6 flex items-center gap-2">
             <span>8 min read</span>
             <span>•</span>
-            <span className="text-primary font-medium">Foundations</span>
+            <span className="text-primary font-medium">Module 2 · Gut health</span>
           </p>
 
           <div className="prose prose-sm prose-p:text-text prose-p:leading-relaxed prose-headings:text-text prose-strong:text-text max-w-none">

@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
-import { homeSlice } from '../../store/slices';
+import { homeSlice, notificationsSlice } from '../../store/slices';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Flame,
   Droplet,
@@ -21,7 +21,11 @@ import {
   Briefcase,
   Cog,
   Heart,
-  Sparkles
+  Sparkles,
+  BellRing,
+  Utensils,
+  Route,
+  Compass
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { WeeklyCheckInModal } from '../../components/modals/WeeklyCheckInModal';
@@ -36,11 +40,23 @@ import {
   primaryDashboardMode,
   type AbPillarId
 } from '../../utils/abPillars';
+import {
+  TRACKING_REMINDER_SLOTS,
+  WATER_GOAL,
+  countMealsForDate,
+  getNextReminderSlot
+} from '../../utils/trackingReminders';
+import { normalizeAdminProgram } from '../../store/adminProgramsSlice';
+import {
+  computeEnrolledLearningProgress,
+  getNextLearningStep
+} from '../../utils/programDisplay';
 
 
 export function Home() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     streakDays,
     longestStreak,
@@ -49,6 +65,14 @@ export function Home() {
     checkInCompleted,
     weeklyWord
   } = useSelector((state: RootState) => state.home);
+  const {
+    enrolledIds: rawEnrolled,
+    enrolledAt: rawEnrolledAt,
+    completedItemKeys: rawCompleted
+  } = useSelector((state: RootState) => state.programs);
+  const { programs: rawPrograms } = useSelector(
+    (state: RootState) => state.adminPrograms
+  );
   const { loggedMeals } = useSelector((state: RootState) => state.meals);
   const { user, familyCode } = useSelector((state: RootState) => state.auth);
   const { tier } = useSelector(
@@ -66,6 +90,9 @@ export function Home() {
   const { entries } = useSelector((state: RootState) => state.checkIn);
   const { quotes, quoteDisplayMode } = useSelector(
     (state: RootState) => state.content
+  );
+  const sentTrackingReminderIds = useSelector(
+    (state: RootState) => state.notifications.sentTrackingReminderIds
   );
 
   const normalizedPillars = useMemo(() => {
@@ -165,6 +192,42 @@ export function Home() {
   const [showJournal, setShowJournal] = useState(false);
   const [journalVisibleCount, setJournalVisibleCount] = useState(4);
 
+  const programs = useMemo(
+    () =>
+      rawPrograms
+        .map((p) =>
+          normalizeAdminProgram(p as unknown as Record<string, unknown>)
+        )
+        .filter((p) => p.active),
+    [rawPrograms]
+  );
+  const enrolledIds = Array.isArray(rawEnrolled) ? rawEnrolled : [];
+  const learning = useMemo(
+    () =>
+      computeEnrolledLearningProgress(programs, rawCompleted, {
+        enrolledIds,
+        enrolledAt: rawEnrolledAt
+      }),
+    [programs, rawCompleted, enrolledIds, rawEnrolledAt]
+  );
+  const nextLesson = useMemo(
+    () =>
+      getNextLearningStep(programs, rawCompleted, {
+        enrolledIds,
+        enrolledAt: rawEnrolledAt
+      }),
+    [programs, rawCompleted, enrolledIds, rawEnrolledAt]
+  );
+
+  useEffect(() => {
+    const checkin = searchParams.get('checkin');
+    if (!checkin) return;
+    if (checkin === 'weekly' || checkin === 'daily') setShowCheckIn(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('checkin');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   const consultingProgress = businessConsultingNeeds.length
     ? Math.min(90, businessConsultingNeeds.length * 28)
     : 35;
@@ -211,6 +274,22 @@ export function Home() {
       : homeMode === 'coaching'
         ? 'Keep showing up for your growth'
         : `Longest: ${longestStreak} days`;
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const mealsToday = countMealsForDate(loggedMeals, todayKey);
+  const nextReminderSlot = getNextReminderSlot();
+  const hour = new Date().getHours();
+  const todayTrackingSent = sentTrackingReminderIds.filter((id) =>
+    id.includes(todayKey)
+  ).length;
+  const pillarHubId = startingPillar?.id ?? normalizedPillars[0];
+
+  const handleDemoRerunReminders = () => {
+    dispatch(notificationsSlice.actions.clearTrackingRemindersForDemo());
+    toast.message('Tracking reminders reset', {
+      description: 'Re-open Home or wait a moment — due slots will fire again.'
+    });
+  };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24">
@@ -273,6 +352,109 @@ export function Home() {
             <ChevronRight className="w-5 h-5 text-white/50" />
           </div>
         </motion.div>
+
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-text">Continue Your Journey</h3>
+            {pillarHubId ? (
+              <button
+                type="button"
+                onClick={() => navigate(`/pillars/${pillarHubId}`)}
+                className="text-xs font-bold text-primary">
+                Pillar hub
+              </button>
+            ) : null}
+          </div>
+          <div className="bg-surface rounded-2xl border border-border p-5 shadow-sm">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Route className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-text">
+                  Day {journeyDay} {journeyLabel}
+                </p>
+                <p className="text-xs text-text-muted mt-0.5">
+                  {learning.total
+                    ? `${learning.completed}/${learning.total} lessons · ${learning.percent}% complete`
+                    : enrolledIds.length
+                      ? 'Lessons unlocking — keep showing up'
+                      : 'Enroll in a program to map your next steps'}
+                </p>
+              </div>
+            </div>
+            {learning.total > 0 && (
+              <div className="h-2 bg-surface-2 rounded-full overflow-hidden mb-4">
+                <div
+                  className="h-full bg-primary rounded-full transition-all"
+                  style={{ width: `${learning.percent}%` }}
+                />
+              </div>
+            )}
+            <div className="grid grid-cols-1 gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    nextLesson?.href ||
+                      (enrolledIds[0]
+                        ? `/programs/${enrolledIds[0]}`
+                        : '/learn')
+                  )
+                }
+                className="bg-surface-2 border border-border rounded-xl p-4 text-left hover:border-primary/30 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-sm text-text">Continue Learning</p>
+                    <p className="text-[11px] text-text-muted truncate">
+                      {nextLesson
+                        ? `${nextLesson.itemLabel} · ${nextLesson.programTitle}`
+                        : enrolledIds.length
+                          ? 'You’re caught up — browse programs'
+                          : 'Pick up where you left off'}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" />
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    nextLesson?.href ||
+                      (pillarHubId
+                        ? `/pillars/${pillarHubId}`
+                        : '/programs')
+                  )
+                }
+                className="bg-surface-2 border border-border rounded-xl p-4 text-left hover:border-primary/30 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-accent-sage/15 text-accent-sage flex items-center justify-center flex-shrink-0">
+                    <Compass className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-sm text-text">
+                      Recommended Next Step
+                    </p>
+                    <p className="text-[11px] text-text-muted truncate">
+                      {nextLesson
+                        ? `${nextLesson.sectionTitle} in ${nextLesson.programTitle}`
+                        : showBusiness
+                          ? 'Clarify one business priority today'
+                          : showCoaching
+                            ? 'One honest growth action with Bestie'
+                            : 'Hydrate, log a meal, or start a lesson'}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" />
+                </div>
+              </button>
+            </div>
+          </div>
+        </section>
 
         {showBusiness && (
           <>
@@ -406,7 +588,13 @@ export function Home() {
                 {loggedMeals.map((meal) => (
                   <div
                     key={meal.id}
-                    className="min-w-[140px] bg-surface rounded-2xl border border-border overflow-hidden snap-start shadow-sm">
+                    className={`min-w-[140px] bg-surface rounded-2xl border overflow-hidden snap-start shadow-sm ${
+                      meal.protocolSeverity === 'alert'
+                        ? 'border-orange-400/50'
+                        : meal.protocolSeverity === 'warning'
+                          ? 'border-amber-400/50'
+                          : 'border-border'
+                    }`}>
                     <div className="h-24 bg-surface-2 relative">
                       {meal.image ? (
                         <img
@@ -422,12 +610,22 @@ export function Home() {
                       <div className="absolute top-2 left-2 bg-surface/90 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-text">
                         {meal.type}
                       </div>
+                      {meal.protocolFlags?.length ? (
+                        <span className="absolute top-2 right-2 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-orange-500 text-white">
+                          Alert
+                        </span>
+                      ) : null}
                     </div>
                     <div className="p-3">
                       <p className="text-sm font-medium text-text line-clamp-1">
                         {meal.description}
                       </p>
                       <p className="text-xs text-text-muted mt-1">{meal.time}</p>
+                      {meal.protocolFlags?.length ? (
+                        <p className="text-[10px] text-orange-600 font-medium mt-1 line-clamp-1">
+                          {meal.protocolFlags.join(', ')}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -473,6 +671,95 @@ export function Home() {
                     </motion.button>
                   );
                 })}
+              </div>
+            </section>
+
+            <section className="bg-surface rounded-2xl border border-border p-5 shadow-sm">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-sky-500/15 flex items-center justify-center flex-shrink-0">
+                  <BellRing className="w-5 h-5 text-sky-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-bold text-text">
+                    Tracking reminders
+                  </h3>
+                  <p className="text-sm text-text-muted mt-0.5">
+                    Auto prompts if water or meals lag behind schedule (demo
+                    in-app, not device push).
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 mb-4">
+                {TRACKING_REMINDER_SLOTS.map((slot) => {
+                  const due = hour >= slot.hour;
+                  const waterOk = waterCount >= slot.waterMin;
+                  const mealsOk = mealsToday >= slot.mealMin;
+                  const onTrack = waterOk && mealsOk;
+                  return (
+                    <div
+                      key={slot.id}
+                      className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
+                        due
+                          ? onTrack
+                            ? 'border-accent-sage/30 bg-accent-sage/10'
+                            : 'border-amber-400/40 bg-amber-500/10'
+                          : 'border-border bg-surface-2'
+                      }`}>
+                      <div className="w-14 text-[11px] font-bold text-text tabular-nums">
+                        {slot.label.replace(':00 ', '')}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 text-xs text-text-muted">
+                          <span className="inline-flex items-center gap-1">
+                            <Droplet className="w-3 h-3" />
+                            {slot.waterMin}/{WATER_GOAL}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Utensils className="w-3 h-3" />
+                            {slot.mealMin}+ meals
+                          </span>
+                        </div>
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wide ${
+                          !due
+                            ? 'text-text-muted'
+                            : onTrack
+                              ? 'text-accent-sage'
+                              : 'text-amber-700'
+                        }`}>
+                        {!due ? 'Later' : onTrack ? 'On track' : 'Due'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="text-xs text-text-muted mb-3">
+                Now: {waterCount}/{WATER_GOAL} water · {mealsToday} meal
+                {mealsToday === 1 ? '' : 's'} today
+                {nextReminderSlot
+                  ? ` · next check ${nextReminderSlot.label}`
+                  : ' · evening window active'}
+                {todayTrackingSent
+                  ? ` · ${todayTrackingSent} reminder(s) sent`
+                  : ''}
+              </p>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/log')}
+                  className="flex-1 h-10 rounded-xl bg-primary text-white text-xs font-bold">
+                  Log a meal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDemoRerunReminders}
+                  className="flex-1 h-10 rounded-xl border border-border bg-surface-2 text-text text-xs font-bold">
+                  Demo: reset reminders
+                </button>
               </div>
             </section>
           </>
@@ -580,6 +867,12 @@ export function Home() {
                 icon: GraduationCap,
                 to: '/programs',
                 color: 'bg-accent-lavender/30 text-primary'
+              },
+              {
+                label: 'Pillar hub',
+                icon: Compass,
+                to: pillarHubId ? `/pillars/${pillarHubId}` : '/programs',
+                color: 'bg-primary/10 text-primary'
               },
               {
                 label: 'Affiliate',

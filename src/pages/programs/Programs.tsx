@@ -8,8 +8,13 @@ import {
   programSummaryLabel,
   computeProgress
 } from '../../utils/programDisplay';
+import {
+  programPillarLabel,
+  resolveProgramPillarId
+} from '../../utils/brandHierarchy';
 import { ArrowLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { pillarById, type AbPillarId } from '../../utils/abPillars';
 
 export function Programs() {
   const navigate = useNavigate();
@@ -41,6 +46,17 @@ export function Programs() {
   const enrolled = programs.filter((p) => enrolledIds.includes(p.id));
   const available = programs.filter((p) => !enrolledIds.includes(p.id));
 
+  const groupedAvailable = useMemo(() => {
+    const map = new Map<string, typeof available>();
+    for (const p of available) {
+      const key = resolveProgramPillarId(p) ?? 'unassigned';
+      const list = map.get(key) ?? [];
+      list.push(p);
+      map.set(key, list);
+    }
+    return [...map.entries()];
+  }, [available]);
+
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24 bg-surface">
       <div className="h-16 px-4 flex items-center justify-between border-b border-border sticky top-0 bg-surface/95 backdrop-blur z-10">
@@ -65,6 +81,7 @@ export function Programs() {
                   enrolled: true,
                   enrolledAt: enrolledAtMap[p.id]
                 });
+                const pillar = programPillarLabel(p);
                 return (
                   <motion.button
                     key={p.id}
@@ -79,9 +96,9 @@ export function Programs() {
                         className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        {p.subtitle && (
-                          <span className="text-[9px] uppercase tracking-wider font-bold text-text-muted block mb-0.5 truncate">
-                            {p.subtitle}
+                        {pillar && (
+                          <span className="text-[9px] uppercase tracking-wider font-bold text-primary block mb-0.5 truncate">
+                            Pillar · {pillar}
                           </span>
                         )}
                         <h3 className="font-bold text-text text-sm mb-1 line-clamp-2">
@@ -121,42 +138,70 @@ export function Programs() {
                 : "You're enrolled in all available programs."}
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {available.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => navigate(`/programs/${p.id}`)}
-                  className="bg-surface border border-border rounded-2xl overflow-hidden text-left shadow-sm hover:shadow-md transition-all">
-                  <div className="aspect-[16/7] relative">
-                    <img
-                      src={programCoverImage(p)}
-                      alt={p.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute top-3 left-3">
-                      <span className="text-[9px] uppercase tracking-wider font-bold text-white bg-black/40 backdrop-blur px-2 py-1 rounded inline-flex items-center gap-1">
-                        <BookOpen className="w-3 h-3" />
-                        Program
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    {p.subtitle && (
-                      <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
-                        {p.subtitle}
-                      </p>
-                    )}
-                    <h3 className="font-bold text-text text-sm mb-1">{p.title}</h3>
-                    <p className="text-xs text-text-muted leading-snug line-clamp-2">
-                      {p.description || programSummaryLabel(p)}
+            <div className="flex flex-col gap-5">
+              {groupedAvailable.map(([pillarKey, list]) => {
+                const pillarLabel =
+                  pillarKey === 'unassigned'
+                    ? 'Other programs'
+                    : pillarById(pillarKey as AbPillarId)?.label ?? 'Programs';
+                return (
+                  <div key={pillarKey}>
+                    <p className="text-[11px] font-bold text-primary uppercase tracking-wider mb-2">
+                      Pillar · {pillarLabel}
                     </p>
-                    <div className="flex items-center justify-end gap-1 mt-3 text-primary font-bold text-xs">
-                      View program <ChevronRight className="w-3.5 h-3.5" />
+                    <div className="flex flex-col gap-3">
+                      {list.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => navigate(`/programs/${p.id}`)}
+                          className="bg-surface border border-border rounded-2xl overflow-hidden text-left shadow-sm hover:shadow-md transition-all">
+                          <div className="aspect-[16/7] relative">
+                            <img
+                              src={programCoverImage(p)}
+                              alt={p.title}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                            <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
+                              <span className="text-[9px] uppercase tracking-wider font-bold text-white bg-black/40 backdrop-blur px-2 py-1 rounded inline-flex items-center gap-1">
+                                <BookOpen className="w-3 h-3" />
+                                Program
+                              </span>
+                              {typeof p.priceUsd === 'number' && (
+                                <span className="text-[9px] uppercase tracking-wider font-bold text-white bg-primary/90 px-2 py-1 rounded">
+                                  ${p.priceUsd} · Full program
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="p-4">
+                            {p.subtitle && (
+                              <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                                {p.subtitle}
+                              </p>
+                            )}
+                            <h3 className="font-bold text-text text-sm mb-1">
+                              {p.title}
+                            </h3>
+                            <p className="text-xs text-text-muted leading-snug line-clamp-2">
+                              {p.description || programSummaryLabel(p)}
+                            </p>
+                            <p className="text-[10px] text-text-muted mt-2">
+                              {programSummaryLabel(p)}
+                              {typeof p.priceUsd === 'number'
+                                ? ` · Pay once at program level`
+                                : ''}
+                            </p>
+                            <div className="flex items-center justify-end gap-1 mt-3 text-primary font-bold text-xs">
+                              View program <ChevronRight className="w-3.5 h-3.5" />
+                            </div>
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

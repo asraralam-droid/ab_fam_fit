@@ -1,27 +1,35 @@
-import React, { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  PlayCircle,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   BookOpen,
   Headphones,
   Lock,
-  Unlock
+  Unlock,
+  Layers,
+  ChevronRight
 } from 'lucide-react';
-import { normalizeAdminProgram } from '../../store/adminProgramsSlice';
+import {
+  normalizeAdminProgram,
+  flattenProgramSections,
+  sortedProgramModules
+} from '../../store/adminProgramsSlice';
 import {
   computeEnrolledLearningProgress,
   itemKey,
   legacyItemKey,
-  sortedSections
+  countSectionModules,
+  sectionSummaryLabel
 } from '../../utils/programDisplay';
 import { canAccessFeature } from '../../utils/membershipAccess';
 import { UpgradeGate } from '../../components/membership/UpgradeGate';
+import { BrandHierarchyTrail } from '../../components/BrandHierarchyTrail';
+import { buildProgramHierarchyCrumbs } from '../../utils/brandHierarchy';
+import { moduleDisplayTitle } from '../programs/curriculum';
 
 function isItemDone(completed: string[], key: string, legacyKey: string) {
   return completed.includes(key) || completed.includes(legacyKey);
@@ -69,52 +77,11 @@ export function Learn() {
     programs.find((p) => p.id === 'prog-jab') ??
     programs.find((p) => enrolledIds.includes(p.id));
 
-  /** Flat non-book program items — used to mirror lesson checkmarks from program progress. */
-  const programLessonKeys = useMemo(() => {
-    if (!jabProgram) return [] as { key: string; legacyKey: string }[];
-    const keys: { key: string; legacyKey: string }[] = [];
-    for (const section of sortedSections(jabProgram.sections ?? [])) {
-      for (const mod of section.videoLessons ?? []) {
-        for (const video of mod.videos ?? []) {
-          keys.push({
-            key: itemKey(jabProgram.id, section.id, 'video', mod.id, video.id),
-            legacyKey: legacyItemKey(jabProgram.id, 'video', mod.id, video.id)
-          });
-        }
-      }
-      for (const mod of section.audioLessons ?? []) {
-        for (const track of mod.tracks ?? []) {
-          keys.push({
-            key: itemKey(jabProgram.id, section.id, 'audio', mod.id, track.id),
-            legacyKey: legacyItemKey(jabProgram.id, 'audio', mod.id, track.id)
-          });
-        }
-      }
-      for (const mod of section.textLessons ?? []) {
-        for (const part of mod.parts ?? []) {
-          keys.push({
-            key: itemKey(jabProgram.id, section.id, 'text', mod.id, part.id),
-            legacyKey: legacyItemKey(jabProgram.id, 'text', mod.id, part.id)
-          });
-        }
-      }
-      for (const mod of section.imageLessons ?? []) {
-        for (const img of mod.images ?? []) {
-          keys.push({
-            key: itemKey(jabProgram.id, section.id, 'image', mod.id, img.id),
-            legacyKey: legacyItemKey(jabProgram.id, 'image', mod.id, img.id)
-          });
-        }
-      }
-    }
-    return keys;
-  }, [jabProgram]);
-
   /** Book progress % from program book lessons (same card UI as before). */
   const programBookProgress = useMemo(() => {
     if (!jabProgram) return [45, 0, 0];
     const percents: number[] = [];
-    for (const section of sortedSections(jabProgram.sections ?? [])) {
+    for (const section of flattenProgramSections(jabProgram)) {
       const books = [...(section.bookLessons ?? [])].sort(
         (a, b) => a.order - b.order
       );
@@ -154,67 +121,53 @@ export function Learn() {
   }, [jabProgram, completedItemKeys]);
 
   const [activeTab, setActiveTab] = useState<'lessons' | 'jab'>('lessons');
-  const [expandedModule, setExpandedModule] = useState<string | null>('mod1');
+  const [expandedModule, setExpandedModule] = useState<string | null>(null);
   const progressPercent = learning.percent;
-  const modules = [
-    {
-      id: 'mod1',
-      title: 'Module 1: Foundations',
-      lessons: [
-        {
-          id: 'lesson-1',
-          title: 'Why Plant-Forward?',
-          duration: '8 min'
-        },
-        {
-          id: 'lesson-2',
-          title: 'Understanding Your Gut',
-          duration: '12 min'
-        },
-        {
-          id: 'lesson-3',
-          title: 'Hydration Basics',
-          duration: '5 min'
-        }
-      ]
-    },
-    {
-      id: 'mod2',
-      title: 'Module 2: Mindset',
-      lessons: [
-        {
-          id: 'lesson-4',
-          title: 'Family Accountability 101',
-          duration: '10 min'
-        },
-        {
-          id: 'lesson-5',
-          title: 'Overcoming Cravings',
-          duration: '15 min'
-        }
-      ]
+
+  const curriculumModules = useMemo(() => {
+    if (!jabProgram) return [];
+    return sortedProgramModules(jabProgram).map((mod) => ({
+      id: mod.id,
+      title: moduleDisplayTitle(mod),
+      sections: [...(mod.sections ?? [])]
+        .sort((a, b) => a.order - b.order)
+        .map((sec) => ({
+          id: sec.id,
+          title: sec.title,
+          summary: sectionSummaryLabel(sec),
+          lessonGroups: Object.values(countSectionModules(sec)).reduce(
+            (a, b) => a + b,
+            0
+          )
+        }))
+    }));
+  }, [jabProgram]);
+
+  useEffect(() => {
+    if (!expandedModule && curriculumModules[0]) {
+      setExpandedModule(curriculumModules[0].id);
     }
-  ];
+  }, [curriculumModules, expandedModule]);
 
   const books = [
     {
       id: 'book-1',
-      title: 'Juicing for Authentic Balance',
+      title: 'Book 1: Authentic Foundation',
       status: 'unlocked' as const,
       progress: programBookProgress[0],
       cover:
-        'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=400&q=80'
+        'https://images.unsplash.com/photo-1544716278-e513176f20b5?auto=format&fit=crop&w=400&q=80'
     },
     {
       id: 'book-2',
-      title: 'The 30-Day Reset',
+      title: 'Book 2: The Practice',
       status: (programBookProgress[0] >= 100 ? 'unlocked' : 'locked') as
         | 'unlocked'
         | 'locked',
       req: 'Complete Book 1',
       progress: programBookProgress[1],
       cover:
-        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80'
+        'https://images.unsplash.com/photo-1610970881699-44a5587cabec?auto=format&fit=crop&w=400&q=80'
     },
     {
       id: 'book-3',
@@ -225,11 +178,9 @@ export function Learn() {
       req: 'Complete Book 2',
       progress: programBookProgress[2],
       cover:
-        'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=400&q=80'
+        'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=400&q=80'
     }
   ];
-
-  const flatLessons = modules.flatMap((m) => m.lessons);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24">
@@ -241,17 +192,26 @@ export function Learn() {
           <button
             onClick={() => setActiveTab('lessons')}
             className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'lessons' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}>
-            Lessons
+            Modules & Lessons
           </button>
           <button
             onClick={() => setActiveTab('jab')}
             className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'jab' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}>
-            JAB Program
+            Program Books
           </button>
         </div>
       </div>
 
       <div className="px-4">
+        {jabProgram && (
+          <div className="rounded-2xl border border-border bg-surface p-3.5 mb-4 shadow-sm">
+            <BrandHierarchyTrail
+              showLegend
+              crumbs={buildProgramHierarchyCrumbs({ program: jabProgram })}
+            />
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           {activeTab === 'lessons' ? (
             <motion.div
@@ -296,85 +256,105 @@ export function Learn() {
                 </div>
               </div>
 
-              {/* Modules */}
+              {/* Modules → Sections → Lessons */}
               <div className="flex flex-col gap-4">
-                {modules.map((mod) => (
-                  <div
-                    key={mod.id}
-                    className="bg-surface rounded-2xl border border-border overflow-hidden shadow-sm">
-                    <button
-                      onClick={() =>
-                        setExpandedModule(
-                          expandedModule === mod.id ? null : mod.id
-                        )
-                      }
-                      className="w-full p-4 flex items-center justify-between bg-surface hover:bg-surface-2 transition-colors">
-                      <h3 className="font-bold text-text">{mod.title}</h3>
-                      {expandedModule === mod.id ? (
-                        <ChevronUp className="w-5 h-5 text-text-muted" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-text-muted" />
-                      )}
-                    </button>
-
-                    <AnimatePresence>
-                      {expandedModule === mod.id && (
-                        <motion.div
-                          initial={{
-                            height: 0,
-                            opacity: 0
-                          }}
-                          animate={{
-                            height: 'auto',
-                            opacity: 1
-                          }}
-                          exit={{
-                            height: 0,
-                            opacity: 0
-                          }}
-                          className="border-t border-border">
-                          {mod.lessons.map((lesson, idx) => {
-                            const lessonIndex = flatLessons.findIndex(
-                              (l) => l.id === lesson.id
-                            );
-                            const mapped = programLessonKeys[lessonIndex];
-                            const isCompleted = mapped
-                              ? isItemDone(
-                                  completedItemKeys,
-                                  mapped.key,
-                                  mapped.legacyKey
-                                )
-                              : false;
-                            return (
-                              <div
-                                key={lesson.id}
-                                onClick={() =>
-                                  navigate(`/learn/lesson/${lesson.id}`)
-                                }
-                                className={`p-4 flex items-center gap-3 cursor-pointer hover:bg-surface-2 transition-colors ${idx !== mod.lessons.length - 1 ? 'border-b border-border' : ''}`}>
-                                {isCompleted ? (
-                                  <CheckCircle2 className="w-6 h-6 text-accent-sage flex-shrink-0" />
-                                ) : (
-                                  <PlayCircle className="w-6 h-6 text-primary/40 flex-shrink-0" />
-                                )}
-                                <div className="flex-1">
-                                  <p
-                                    className={`font-medium ${isCompleted ? 'text-text-muted' : 'text-text'}`}>
-                                    {lesson.title}
-                                  </p>
-                                  <p className="text-xs text-text-muted mt-0.5">
-                                    {lesson.duration}
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                {curriculumModules.length === 0 ? (
+                  <div className="p-8 text-center text-sm text-text-muted bg-surface border border-dashed border-border rounded-2xl">
+                    No modules published yet.
                   </div>
-                ))}
+                ) : (
+                  curriculumModules.map((mod) => (
+                    <div
+                      key={mod.id}
+                      className="bg-surface rounded-2xl border border-border overflow-hidden shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedModule(
+                            expandedModule === mod.id ? null : mod.id
+                          )
+                        }
+                        className="w-full p-4 flex items-center justify-between bg-surface hover:bg-surface-2 transition-colors text-left">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Layers className="w-4 h-4 text-primary flex-shrink-0" />
+                          <h3 className="font-bold text-text truncate">
+                            {mod.title}
+                          </h3>
+                        </div>
+                        {expandedModule === mod.id ? (
+                          <ChevronUp className="w-5 h-5 text-text-muted" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-text-muted" />
+                        )}
+                      </button>
+
+                      <AnimatePresence>
+                        {expandedModule === mod.id && (
+                          <motion.div
+                            initial={{
+                              height: 0,
+                              opacity: 0
+                            }}
+                            animate={{
+                              height: 'auto',
+                              opacity: 1
+                            }}
+                            exit={{
+                              height: 0,
+                              opacity: 0
+                            }}
+                            className="border-t border-border">
+                            {mod.sections.length === 0 ? (
+                              <p className="p-4 text-sm text-text-muted">
+                                No sections in this module yet.
+                              </p>
+                            ) : (
+                              mod.sections.map((sec, idx) => (
+                                <button
+                                  key={sec.id}
+                                  type="button"
+                                  onClick={() =>
+                                    jabProgram &&
+                                    navigate(
+                                      `/programs/${jabProgram.id}/section/${sec.id}`
+                                    )
+                                  }
+                                  className={`w-full p-4 flex items-center gap-3 text-left hover:bg-surface-2 transition-colors ${
+                                    idx !== mod.sections.length - 1
+                                      ? 'border-b border-border'
+                                      : ''
+                                  }`}>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-0.5">
+                                      Section
+                                    </p>
+                                    <p className="font-medium text-text text-sm">
+                                      {sec.title}
+                                    </p>
+                                    <p className="text-xs text-text-muted mt-0.5">
+                                      {sec.summary}
+                                    </p>
+                                  </div>
+                                  <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" />
+                                </button>
+                              ))
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ))
+                )}
               </div>
+
+              {jabProgram && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/programs/${jabProgram.id}`)}
+                  className="w-full mt-4 h-11 rounded-xl border border-primary/30 text-primary text-sm font-bold bg-primary/5">
+                  Open full program hierarchy
+                </button>
+              )}
                 </>
               )}
             </motion.div>
@@ -398,10 +378,10 @@ export function Learn() {
               }}>
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-text mb-1">
-                  Juicing for Authentic Balance
+                  {jabProgram?.title ?? 'Juicing for Authentic Balance'}
                 </h2>
                 <p className="text-text-muted text-sm">
-                  The complete JAB Series
+                  Program books (lesson type) inside your pillar path
                 </p>
               </div>
 

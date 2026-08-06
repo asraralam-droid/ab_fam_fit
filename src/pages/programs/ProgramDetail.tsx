@@ -32,6 +32,9 @@ import {
   type ProgramLessonTab,
   type CurriculumRow
 } from './curriculum';
+import { BrandHierarchyTrail } from '../../components/BrandHierarchyTrail';
+import { buildProgramHierarchyCrumbs } from '../../utils/brandHierarchy';
+import { CenteredModal } from '../../components/modals';
 import {
   ArrowLeft,
   Play,
@@ -44,10 +47,16 @@ import {
   ChevronDown,
   ChevronUp,
   Video,
-  ImageIcon
+  ImageIcon,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { membershipSlice } from '../../store/membershipSlice';
+import {
+  formatModuleUnlockLabel,
+  getModuleLockStatus
+} from '../../utils/moduleUnlock';
 
 type Tab = ProgramLessonTab;
 
@@ -78,12 +87,24 @@ export function ProgramDetail() {
   const {
     enrolledIds: rawEnrolled,
     enrolledAt: rawEnrolledAt,
+    paidProgramIds: rawPaid,
+    paidAmountUsd: rawPaidAmount,
+    demoDayOffsetByProgram: rawDemoOffset,
     completedItemKeys: rawCompleted
   } = useSelector((state: RootState) => state.programs);
   const enrolledIds = Array.isArray(rawEnrolled) ? rawEnrolled : [];
+  const paidProgramIds = Array.isArray(rawPaid) ? rawPaid : [];
+  const paidAmountMap =
+    rawPaidAmount && typeof rawPaidAmount === 'object'
+      ? (rawPaidAmount as Record<string, number>)
+      : {};
   const enrolledAtMap =
     rawEnrolledAt && typeof rawEnrolledAt === 'object'
       ? (rawEnrolledAt as Record<string, number>)
+      : {};
+  const demoOffsetMap =
+    rawDemoOffset && typeof rawDemoOffset === 'object'
+      ? (rawDemoOffset as Record<string, number>)
       : {};
   const completedItemKeys = Array.isArray(rawCompleted) ? rawCompleted : [];
 
@@ -121,8 +142,14 @@ export function ProgramDetail() {
     return () => window.clearInterval(id);
   }, []);
 
-  const enrolled = program ? enrolledIds.includes(program.id) : false;
+  const programPaid = program ? paidProgramIds.includes(program.id) : false;
+  const enrolled = program
+    ? programPaid || enrolledIds.includes(program.id)
+    : false;
   const enrolledAt = program ? enrolledAtMap[program.id] : undefined;
+  const demoDayOffset = program ? demoOffsetMap[program.id] ?? 0 : 0;
+  const programPrice = program?.priceUsd ?? 197;
+  const paidAmount = program ? paidAmountMap[program.id] : undefined;
   const progress = program
     ? computeProgress(program, completedItemKeys, {
         enrolled,
@@ -136,6 +163,16 @@ export function ProgramDetail() {
     [program, section]
   );
 
+  const sectionModuleLock =
+    program && sectionModule
+      ? getModuleLockStatus(sectionModule, {
+          enrolled,
+          enrolledAt,
+          now,
+          demoDayOffset
+        })
+      : null;
+
   const sectionLock =
     program && section
       ? getSectionLockStatus(lockSections, section.id, {
@@ -144,6 +181,11 @@ export function ProgramDetail() {
           now
         })
       : null;
+
+  /** Time-gates apply to sections only; modules stay open as containers. */
+  const sectionContentLocked =
+    (sectionModuleLock && !sectionModuleLock.unlocked) ||
+    (sectionLock && !sectionLock.unlocked);
 
   const defaultTab = useMemo((): Tab => {
     if (!section) return 'books';
@@ -158,6 +200,8 @@ export function ProgramDetail() {
   const [expandedBookId, setExpandedBookId] = useState<string | null>(null);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(() => new Set());
   const [expandedSections, setExpandedSections] = useState<Set<string>>(() => new Set());
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
 
   useEffect(() => {
     if (sectionId) return;
@@ -196,13 +240,41 @@ export function ProgramDetail() {
     );
   }
 
-  const handleEnroll = () => {
-    dispatch(programsSlice.actions.enrollInProgram(program.id));
-    toast.success(`Started ${program.title}`);
+  const handlePurchase = () => {
+    setIsPaying(true);
+    setTimeout(() => {
+      dispatch(
+        programsSlice.actions.purchaseProgram({
+          programId: program.id,
+          amountUsd: programPrice
+        })
+      );
+      dispatch(membershipSlice.actions.purchaseBookPackage());
+      setIsPaying(false);
+      setShowPayModal(false);
+      toast.success(`Program unlocked — $${programPrice} (all modules included)`);
+    }, 900);
   };
 
   const handleLessonOpen = (secId: string, tab: Tab) => {
     if (!program) return;
+    const parentMod = findProgramModuleForSection(program, secId);
+    if (parentMod) {
+      const modLock = getModuleLockStatus(parentMod, {
+        enrolled,
+        enrolledAt,
+        now,
+        demoDayOffset
+      });
+      if (!modLock.unlocked) {
+        toast.error(
+          enrolled
+            ? `This section unlocks on program day ${modLock.opensOnProgramDay} (${modLock.timeWindow}). ${formatModuleUnlockLabel(modLock, true)}.`
+            : 'Unlock the program to access sections'
+        );
+        return;
+      }
+    }
     const lock = getSectionLockStatus(lockSections, secId, {
       enrolled,
       enrolledAt,
@@ -280,9 +352,69 @@ export function ProgramDetail() {
     );
   };
 
+  const payCtaFooter = !programPaid ? (
+    <div className="fixed bottom-0 left-0 right-0 p-4 bg-surface/95 backdrop-blur border-t border-border z-30 max-w-[420px] mx-auto pb-safe">
+      <button
+        type="button"
+        onClick={() => setShowPayModal(true)}
+        className="w-full h-14 bg-primary text-white rounded-2xl font-bold text-base shadow-lg shadow-primary/30 hover:bg-primary-hover transition-all active:scale-[0.98]">
+        Unlock full program · ${programPrice}
+      </button>
+      <p className="text-[10px] text-center text-text-muted mt-2">
+        One payment · all modules included · no per-module checkout
+      </p>
+    </div>
+  ) : null;
+
+  const payModal = (
+    <CenteredModal
+      open={showPayModal}
+      onClose={() => !isPaying && setShowPayModal(false)}
+      title="Pay at Program level">
+      <div className="flex flex-col gap-4">
+        <p className="text-sm text-text leading-relaxed">
+          Unlock <span className="font-bold">{program.title}</span> for{' '}
+          <span className="font-bold">${programPrice}</span>. This single charge
+          covers every module — sections open by schedule, not extra fees.
+        </p>
+        <ul className="text-xs text-text-muted space-y-1.5 list-disc pl-4">
+          <li>Program purchase (not per module)</li>
+          <li>Sections unlock by time/progress after purchase</li>
+          <li>Demo only — no real card charge</li>
+        </ul>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={isPaying}
+            onClick={() => setShowPayModal(false)}
+            className="flex-1 h-11 rounded-xl border border-border text-sm font-bold bg-surface-2">
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={isPaying}
+            onClick={handlePurchase}
+            className="flex-1 h-11 rounded-xl bg-primary text-white text-sm font-bold flex items-center justify-center gap-2">
+            {isPaying ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              `Pay $${programPrice}`
+            )}
+          </button>
+        </div>
+      </div>
+    </CenteredModal>
+  );
+
   const toggleComplete = (key: string, legacyKey: string, label: string) => {
     if (!enrolled) {
       toast.error('Start the program to access this content');
+      return;
+    }
+    if (sectionModuleLock && !sectionModuleLock.unlocked) {
+      toast.error(
+        `Section locked until program day ${sectionModuleLock.opensOnProgramDay}`
+      );
       return;
     }
     if (sectionLock && !sectionLock.unlocked) {
@@ -306,7 +438,7 @@ export function ProgramDetail() {
   };
 
   const renderStatus = (key: string, legacyKey: string) => {
-    if (!enrolled || (sectionLock && !sectionLock.unlocked)) {
+    if (!enrolled || sectionContentLocked) {
       return <Lock className="w-5 h-5 text-text-muted flex-shrink-0" />;
     }
     return isComplete(completedItemKeys, key, legacyKey) ? (
@@ -333,11 +465,15 @@ export function ProgramDetail() {
               className="w-10 h-10 rounded-full bg-black/30 backdrop-blur text-white flex items-center justify-center">
               <ArrowLeft className="w-5 h-5" />
             </button>
-            {enrolled && (
+            {programPaid ? (
+              <span className="text-[10px] uppercase tracking-wider font-bold bg-accent-sage text-white px-2.5 py-1 rounded-md shadow-sm">
+                Paid · Full program
+              </span>
+            ) : enrolled ? (
               <span className="text-[10px] uppercase tracking-wider font-bold bg-accent-sage text-white px-2.5 py-1 rounded-md shadow-sm">
                 Enrolled
               </span>
-            )}
+            ) : null}
           </div>
           <div className="absolute bottom-0 left-0 right-0 p-4 pb-5">
             {program.subtitle && (
@@ -346,10 +482,35 @@ export function ProgramDetail() {
               </span>
             )}
             <h1 className="text-2xl font-bold text-white leading-snug">{program.title}</h1>
+            {!programPaid && (
+              <p className="text-sm text-white/90 mt-1 font-semibold">
+                ${programPrice} one-time · unlocks all modules
+              </p>
+            )}
           </div>
         </div>
 
         <div className="px-4 pt-5">
+          <div className="rounded-2xl border border-border bg-surface p-3.5 mb-5 shadow-sm">
+            <BrandHierarchyTrail
+              showLegend
+              crumbs={buildProgramHierarchyCrumbs({ program })}
+            />
+          </div>
+
+          <div className="rounded-2xl border border-accent-sage/30 bg-accent-sage/10 p-3.5 mb-5">
+            <p className="text-xs font-bold text-text mb-1">
+              Payment rule (demo)
+            </p>
+            <p className="text-xs text-text-muted leading-relaxed">
+              You pay once at the <span className="font-semibold text-text">Program</span> level.
+              Modules are never sold separately — sections unlock by time/progress after purchase.
+              {programPaid && paidAmount != null
+                ? ` You paid $${paidAmount} for full access.`
+                : ''}
+            </p>
+          </div>
+
           {program.description && (
             <p className="text-sm text-text-muted leading-relaxed mb-5">
               {program.description}
@@ -373,9 +534,13 @@ export function ProgramDetail() {
             </div>
           )}
 
-          <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-4">
-            Curriculum
+          <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+            Modules
           </h2>
+          <p className="text-[11px] text-text-muted mb-3">
+            Modules stay open. Sections inside them unlock by program day — not
+            by extra payment.
+          </p>
 
           {sortedModules.length === 0 ? (
             <div className="p-8 text-center text-sm text-text-muted bg-surface border border-dashed border-border rounded-2xl">
@@ -386,6 +551,12 @@ export function ProgramDetail() {
               {sortedModules.map((mod) => {
                 const modExpanded = expandedModules.has(mod.id);
                 const modSections = sortedByOrder(mod.sections ?? []);
+                const modLock = getModuleLockStatus(mod, {
+                  enrolled,
+                  enrolledAt,
+                  now,
+                  demoDayOffset
+                });
                 return (
                   <div
                     key={mod.id}
@@ -394,9 +565,17 @@ export function ProgramDetail() {
                       type="button"
                       onClick={() => toggleModuleExpanded(mod.id)}
                       className="w-full p-4 flex items-center justify-between gap-3 hover:bg-surface-2 transition-colors text-left">
-                      <h3 className="font-bold text-text text-base leading-snug flex-1">
-                        {moduleDisplayTitle(mod)}
-                      </h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-text text-base leading-snug">
+                          {moduleDisplayTitle(mod)}
+                        </h3>
+                        <p className="text-[11px] text-text-muted mt-1">
+                          {modLock.timeWindow}
+                          {' · '}
+                          {modSections.length} section
+                          {modSections.length === 1 ? '' : 's'}
+                        </p>
+                      </div>
                       {modExpanded ? (
                         <ChevronUp className="w-5 h-5 text-text-muted shrink-0" />
                       ) : (
@@ -422,19 +601,44 @@ export function ProgramDetail() {
                                 enrolledAt,
                                 now
                               });
-                              const locked = !lock.unlocked;
+                              const scheduleLocked = !modLock.unlocked;
+                              const sectionChainLocked = !lock.unlocked;
+                              const locked = scheduleLocked || sectionChainLocked;
                               const secExpanded = expandedSections.has(sec.id);
-                              const daysLeftLine = formatSectionDaysLeft(
-                                lock,
-                                enrolled,
-                                lockSections,
-                                sec
-                              );
+                              const scheduleDaysLeft =
+                                scheduleLocked && enrolled && modLock.daysRemaining != null
+                                  ? modLock.daysRemaining <= 0
+                                    ? 'Unlocks today'
+                                    : modLock.daysRemaining === 1
+                                      ? '1 day left to unlock'
+                                      : `${modLock.daysRemaining} days left to unlock`
+                                  : scheduleLocked && !enrolled
+                                    ? modLock.unlockAfterDays <= 0
+                                      ? 'Start the program to unlock this section'
+                                      : `Unlocks on program day ${modLock.opensOnProgramDay}`
+                                    : null;
+                              const daysLeftLine = scheduleLocked
+                                ? scheduleDaysLeft
+                                : formatSectionDaysLeft(
+                                    lock,
+                                    enrolled,
+                                    lockSections,
+                                    sec
+                                  );
                               const lockDetail =
-                                enrolled && locked
-                                  ? formatSectionLockProgressDetail(lock, lockSections, sec)
-                                  : null;
+                                enrolled && locked && !scheduleLocked
+                                  ? formatSectionLockProgressDetail(
+                                      lock,
+                                      lockSections,
+                                      sec
+                                    )
+                                  : enrolled && scheduleLocked
+                                    ? `${modLock.timeWindow} · opens program day ${modLock.opensOnProgramDay}`
+                                    : null;
                               const rows = buildSectionLessonRows(program.id, sec);
+                              const unlockBadge = scheduleLocked
+                                ? formatModuleUnlockLabel(modLock, enrolled)
+                                : formatSectionUnlockLabel(lock, enrolled);
 
                               return (
                                 <div
@@ -445,22 +649,39 @@ export function ProgramDetail() {
                                     onClick={() => toggleSectionExpanded(sec.id)}
                                     className="w-full px-4 pt-4 pb-2 flex items-start justify-between gap-3 hover:bg-surface-2/60 transition-colors text-left">
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                                        {sectionCurriculumHeading(sec)}
-                                      </p>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                                          {sectionCurriculumHeading(sec)}
+                                        </p>
+                                        <span
+                                          className={`text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${
+                                            locked
+                                              ? 'bg-surface-2 text-text-muted border border-border'
+                                              : 'bg-accent-sage/15 text-accent-sage border border-accent-sage/30'
+                                          }`}>
+                                          {locked ? (
+                                            <span className="inline-flex items-center gap-1">
+                                              <Lock className="w-3 h-3" />
+                                              {unlockBadge}
+                                            </span>
+                                          ) : (
+                                            'Unlocked'
+                                          )}
+                                        </span>
+                                      </div>
                                       {locked && (
                                         <div className="mt-2 space-y-1">
-                                          <div className="flex flex-wrap items-center gap-2">
-                                            <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-2 text-text-muted border border-border">
-                                              {formatSectionUnlockLabel(lock, enrolled)}
-                                            </span>
-                                            {resolveSectionLockDays(lockSections, sec) > 0 && (
+                                          {!scheduleLocked &&
+                                            resolveSectionLockDays(lockSections, sec) >
+                                              0 && (
                                               <span className="text-[10px] text-text-muted">
-                                                {formatSectionLockDaysBadge(lockSections, sec)}{' '}
+                                                {formatSectionLockDaysBadge(
+                                                  lockSections,
+                                                  sec
+                                                )}{' '}
                                                 lock
                                               </span>
                                             )}
-                                          </div>
                                           {daysLeftLine && (
                                             <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
                                               {daysLeftLine}
@@ -491,10 +712,12 @@ export function ProgramDetail() {
                                         {rows.length === 0 ? (
                                           <p className="px-4 pb-4 text-sm text-text-muted">
                                             {locked
-                                              ? lock.unlocksAt && enrolled
-                                                ? `No content yet · Opens ${formatUnlockDate(lock.unlocksAt)}`
-                                                : daysLeftLine ??
-                                                  'Complete previous sections to unlock'
+                                              ? scheduleLocked && enrolled
+                                                ? `No content yet · Opens program day ${modLock.opensOnProgramDay}`
+                                                : lock.unlocksAt && enrolled
+                                                  ? `No content yet · Opens ${formatUnlockDate(lock.unlocksAt)}`
+                                                  : daysLeftLine ??
+                                                    'Complete previous sections to unlock'
                                               : 'No lessons in this section yet.'}
                                           </p>
                                         ) : (
@@ -526,18 +749,8 @@ export function ProgramDetail() {
           )}
         </div>
 
-        {!enrolled && (
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-surface/95 backdrop-blur border-t border-border z-30 max-w-[420px] mx-auto pb-safe">
-            <button
-              onClick={handleEnroll}
-              className="w-full h-14 bg-primary text-white rounded-2xl font-bold text-base shadow-lg shadow-primary/30 hover:bg-primary-hover transition-all active:scale-[0.98]">
-              Start Program
-            </button>
-            <p className="text-[10px] text-center text-text-muted mt-2">
-              Your first section unlocks based on program settings when you start.
-            </p>
-          </div>
-        )}
+        {payCtaFooter}
+        {payModal}
       </div>
     );
   }
@@ -550,7 +763,11 @@ export function ProgramDetail() {
     return section.textLessons.length;
   };
 
-  if (sectionLock && !sectionLock.unlocked) {
+  if (sectionContentLocked) {
+    const lockedBySchedule = sectionModuleLock && !sectionModuleLock.unlocked;
+    const daysRemaining = lockedBySchedule
+      ? sectionModuleLock?.daysRemaining
+      : sectionLock?.daysRemaining;
     return (
       <div className="flex flex-col h-full overflow-y-auto pb-32 bg-surface">
         <div className="relative h-48 w-full">
@@ -571,42 +788,40 @@ export function ProgramDetail() {
             <Lock className="w-10 h-10 mb-3" />
             <p className="text-lg font-bold">Section locked</p>
             <p className="text-sm text-white/80 mt-1">
-              {formatSectionDaysLeft(sectionLock, enrolled, lockSections, section) ??
-                (!enrolled
-                  ? 'Start the program to access this section.'
-                  : 'This section is not available yet.')}
+              {lockedBySchedule
+                ? enrolled
+                  ? `Opens on program day ${sectionModuleLock!.opensOnProgramDay} (${sectionModuleLock!.timeWindow}).`
+                  : 'Unlock the program first. Sections then open by day schedule.'
+                : formatSectionDaysLeft(sectionLock!, enrolled, lockSections, section) ??
+                  (!enrolled
+                    ? 'Start the program to access this section.'
+                    : 'This section is not available yet.')}
             </p>
-            {enrolled && (
+            {!lockedBySchedule && enrolled && sectionLock && (
               <p className="text-xs text-white/60 mt-2 max-w-xs">
                 {formatSectionLockProgressDetail(sectionLock, lockSections, section)}
               </p>
             )}
-            {enrolled && sectionLock.unlocksAt && (
-              <p className="text-xs text-white/70 mt-2">
-                Opens on {formatUnlockDate(sectionLock.unlocksAt)}
+            {enrolled && daysRemaining != null && daysRemaining > 0 && (
+              <p className="text-2xl font-extrabold mt-4 tabular-nums">
+                {daysRemaining}
+                <span className="text-sm font-bold ml-1">
+                  day{daysRemaining === 1 ? '' : 's'} left
+                </span>
               </p>
             )}
-            {enrolled &&
-              sectionLock.daysRemaining !== undefined &&
-              sectionLock.daysRemaining > 0 && (
-                <p className="text-2xl font-extrabold mt-4 tabular-nums">
-                  {sectionLock.daysRemaining}
-                  <span className="text-sm font-bold ml-1">
-                    day{sectionLock.daysRemaining === 1 ? '' : 's'} left
-                  </span>
-                </p>
-              )}
+            {enrolled && (
+              <button
+                type="button"
+                onClick={() => navigate(`/programs/${program.id}`)}
+                className="mt-4 h-10 px-4 rounded-xl bg-white text-primary text-sm font-bold">
+                Back to program
+              </button>
+            )}
           </div>
         </div>
-        {!enrolled && (
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-surface/95 backdrop-blur border-t border-border z-30 max-w-[420px] mx-auto pb-safe">
-            <button
-              onClick={handleEnroll}
-              className="w-full h-14 bg-primary text-white rounded-2xl font-bold text-base shadow-lg shadow-primary/30 hover:bg-primary-hover transition-all active:scale-[0.98]">
-              Start Program
-            </button>
-          </div>
-        )}
+        {payCtaFooter}
+        {payModal}
       </div>
     );
   }
@@ -638,10 +853,23 @@ export function ProgramDetail() {
       </div>
 
       <div className="p-5">
+        <div className="rounded-2xl border border-border bg-surface-2 p-3 mb-4">
+          <BrandHierarchyTrail
+            crumbs={buildProgramHierarchyCrumbs({
+              program,
+              module: sectionModule,
+              section
+            })}
+          />
+        </div>
+
         {section.description && (
           <p className="text-sm text-text-muted leading-relaxed mb-4">{section.description}</p>
         )}
 
+        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-2">
+          Lesson types
+        </p>
         <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-4 -mx-1 px-1">
           {TABS.filter((t) => tabCount(t.id) > 0).map(({ id: tabId, label, icon: Icon }) => {
             const active = activeTab === tabId;
@@ -659,7 +887,7 @@ export function ProgramDetail() {
         </div>
 
         <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">
-          Curriculum
+          Lessons
         </h2>
 
         {activeTab === 'books' && (
@@ -937,15 +1165,8 @@ export function ProgramDetail() {
           ))}
       </div>
 
-      {!enrolled && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-surface/95 backdrop-blur border-t border-border z-30 max-w-[420px] mx-auto pb-safe">
-          <button
-            onClick={handleEnroll}
-            className="w-full h-14 bg-primary text-white rounded-2xl font-bold text-base shadow-lg shadow-primary/30 hover:bg-primary-hover transition-all active:scale-[0.98]">
-            Start Program
-          </button>
-        </div>
-      )}
+      {payCtaFooter}
+      {payModal}
     </div>
   );
 }

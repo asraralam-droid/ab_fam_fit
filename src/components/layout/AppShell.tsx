@@ -2,6 +2,8 @@ import { Outlet } from 'react-router-dom';
 import { TopBar } from './TopBar';
 import { BottomTabs } from './BottomTabs';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { DailyMessagingRunner } from '../DailyMessagingRunner';
+import { TrackingReminderRunner } from '../TrackingReminderRunner';
 
 const BESTIE_AVATAR = '/assets/authentic-bestie-avatar.png';
 
@@ -9,10 +11,14 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const hideBestie =
-    location.pathname === '/bestie' || location.pathname.startsWith('/chat');
+    location.pathname === '/bestie' ||
+    location.pathname.endsWith('/bestie') ||
+    location.pathname.startsWith('/chat');
   const isAffiliateModule = location.pathname.startsWith('/affiliate');
   return (
     <div className="flex flex-col h-full w-full relative">
+      <DailyMessagingRunner />
+      <TrackingReminderRunner />
       {!isAffiliateModule && <TopBar />}
 
       <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background pb-6">

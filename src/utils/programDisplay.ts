@@ -1,16 +1,12 @@
 import type { AdminProgram, ProgramSection } from '../store/adminProgramsSlice';
 import { flattenProgramSections } from '../store/adminProgramsSlice';
+import { PROGRAM_FALLBACK_COVERS } from './brandMedia';
 
 /** Days between each section unlock after enrollment. */
 export const SECTION_UNLOCK_INTERVAL_DAYS = 30;
 export const MS_PER_SECTION_UNLOCK = SECTION_UNLOCK_INTERVAL_DAYS * 24 * 60 * 60 * 1000;
 
-const COVERS = [
-  'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=600&q=80'
-];
+const COVERS = PROGRAM_FALLBACK_COVERS;
 
 export function programCover(programId: string): string {
   let hash = 0;
@@ -105,13 +101,16 @@ export function countProgramModules(program: AdminProgram) {
 
 export function sectionSummaryLabel(section: ProgramSection) {
   const mods = countSectionModules(section);
+  const lessonGroups =
+    mods.books + mods.video + mods.audio + mods.images + mods.text;
+  if (!lessonGroups) return 'No lessons yet';
   const parts: string[] = [];
-  if (mods.books) parts.push(`${mods.books} book${mods.books === 1 ? '' : 's'}`);
-  if (mods.video) parts.push(`${mods.video} video`);
-  if (mods.audio) parts.push(`${mods.audio} audio`);
-  if (mods.images) parts.push(`${mods.images} image${mods.images === 1 ? '' : 's'}`);
-  if (mods.text) parts.push(`${mods.text} text`);
-  return parts.length ? parts.join(' · ') : 'No content yet';
+  if (mods.books) parts.push(`${mods.books} book lesson${mods.books === 1 ? '' : 's'}`);
+  if (mods.video) parts.push(`${mods.video} video lesson${mods.video === 1 ? '' : 's'}`);
+  if (mods.audio) parts.push(`${mods.audio} audio lesson${mods.audio === 1 ? '' : 's'}`);
+  if (mods.images) parts.push(`${mods.images} image lesson${mods.images === 1 ? '' : 's'}`);
+  if (mods.text) parts.push(`${mods.text} text lesson${mods.text === 1 ? '' : 's'}`);
+  return parts.join(' · ');
 }
 
 export function programSummaryLabel(program: AdminProgram) {
@@ -119,6 +118,12 @@ export function programSummaryLabel(program: AdminProgram) {
   const sectionCount = flattenProgramSections(program).length;
   if (sectionCount || moduleCount) {
     const mods = countProgramModules(program);
+    const lessonContainers =
+      (mods.books ?? 0) +
+      (mods.video ?? 0) +
+      (mods.audio ?? 0) +
+      (mods.images ?? 0) +
+      (mods.text ?? 0);
     const parts: string[] = [];
     if (moduleCount) {
       parts.push(`${moduleCount} module${moduleCount === 1 ? '' : 's'}`);
@@ -126,11 +131,11 @@ export function programSummaryLabel(program: AdminProgram) {
     if (sectionCount) {
       parts.push(`${sectionCount} section${sectionCount === 1 ? '' : 's'}`);
     }
-    if (mods.books) parts.push(`${mods.books} book${mods.books === 1 ? '' : 's'}`);
-    if (mods.video) parts.push(`${mods.video} video`);
-    if (mods.audio) parts.push(`${mods.audio} audio`);
-    if (mods.images) parts.push(`${mods.images} image${mods.images === 1 ? '' : 's'}`);
-    if (mods.text) parts.push(`${mods.text} text`);
+    if (lessonContainers) {
+      parts.push(
+        `${lessonContainers} lesson group${lessonContainers === 1 ? '' : 's'}`
+      );
+    }
     return parts.join(' · ');
   }
   return 'No content yet';
@@ -585,4 +590,142 @@ export function computeEnrolledLearningProgress(
     total,
     percent: total ? Math.round((completed / total) * 100) : 0
   };
+}
+
+export type NextLearningStep = {
+  programId: string;
+  programTitle: string;
+  sectionId: string;
+  sectionTitle: string;
+  itemLabel: string;
+  href: string;
+  progress: ItemProgressStats;
+};
+
+type UnlockedItemMeta = {
+  key: string;
+  legacyKey: string;
+  sectionId: string;
+  sectionTitle: string;
+  itemLabel: string;
+};
+
+function collectUnlockedItemMeta(
+  program: AdminProgram,
+  options?: {
+    enrolled?: boolean;
+    enrolledAt?: number;
+  }
+): UnlockedItemMeta[] {
+  const items: UnlockedItemMeta[] = [];
+
+  for (const section of flattenProgramSections(program)) {
+    const sections = programSectionsForLocks(program);
+    const lock = getSectionLockStatus(sections, section.id, {
+      enrolled: options?.enrolled ?? true,
+      enrolledAt: options?.enrolledAt
+    });
+    if (!lock.unlocked) continue;
+    const sectionTitle = section.title || 'Section';
+
+    for (const book of section.bookLessons ?? []) {
+      for (const topic of book.topics ?? []) {
+        for (const part of topic.parts ?? []) {
+          items.push({
+            key: itemKey(program.id, section.id, 'book', book.id, topic.id, part.id),
+            legacyKey: legacyItemKey(program.id, 'book', book.id, topic.id, part.id),
+            sectionId: section.id,
+            sectionTitle,
+            itemLabel: part.label || topic.title || book.title || 'Book lesson'
+          });
+        }
+      }
+    }
+    for (const mod of section.videoLessons ?? []) {
+      for (const video of mod.videos ?? []) {
+        items.push({
+          key: itemKey(program.id, section.id, 'video', mod.id, video.id),
+          legacyKey: legacyItemKey(program.id, 'video', mod.id, video.id),
+          sectionId: section.id,
+          sectionTitle,
+          itemLabel: video.label || mod.title || 'Video lesson'
+        });
+      }
+    }
+    for (const mod of section.audioLessons ?? []) {
+      for (const track of mod.tracks ?? []) {
+        items.push({
+          key: itemKey(program.id, section.id, 'audio', mod.id, track.id),
+          legacyKey: legacyItemKey(program.id, 'audio', mod.id, track.id),
+          sectionId: section.id,
+          sectionTitle,
+          itemLabel: track.label || mod.title || 'Audio lesson'
+        });
+      }
+    }
+    for (const mod of section.imageLessons ?? []) {
+      for (const img of mod.images ?? []) {
+        items.push({
+          key: itemKey(program.id, section.id, 'image', mod.id, img.id),
+          legacyKey: legacyItemKey(program.id, 'image', mod.id, img.id),
+          sectionId: section.id,
+          sectionTitle,
+          itemLabel: img.label || mod.title || 'Image lesson'
+        });
+      }
+    }
+    for (const mod of section.textLessons ?? []) {
+      for (const part of mod.parts ?? []) {
+        items.push({
+          key: itemKey(program.id, section.id, 'text', mod.id, part.id),
+          legacyKey: legacyItemKey(program.id, 'text', mod.id, part.id),
+          sectionId: section.id,
+          sectionTitle,
+          itemLabel: part.label || mod.title || 'Text lesson'
+        });
+      }
+    }
+  }
+
+  return items;
+}
+
+/** First incomplete unlocked lesson across enrolled programs (continue / recommended). */
+export function getNextLearningStep(
+  programs: AdminProgram[],
+  completedKeys: string[] | undefined,
+  options: {
+    enrolledIds: string[];
+    enrolledAt?: Record<string, number>;
+  }
+): NextLearningStep | null {
+  const completed = new Set(Array.isArray(completedKeys) ? completedKeys : []);
+  const enrolledIds = Array.isArray(options.enrolledIds) ? options.enrolledIds : [];
+  const enrolledAt = options.enrolledAt ?? {};
+
+  for (const program of programs) {
+    if (!enrolledIds.includes(program.id)) continue;
+    const progress = computeItemStats(program, completedKeys, {
+      enrolled: true,
+      enrolledAt: enrolledAt[program.id]
+    });
+    const items = collectUnlockedItemMeta(program, {
+      enrolled: true,
+      enrolledAt: enrolledAt[program.id]
+    });
+    const next = items.find(
+      (item) => !isItemComplete(completed, item.key, item.legacyKey)
+    );
+    if (!next) continue;
+    return {
+      programId: program.id,
+      programTitle: program.title,
+      sectionId: next.sectionId,
+      sectionTitle: next.sectionTitle,
+      itemLabel: next.itemLabel,
+      href: `/programs/${program.id}/section/${next.sectionId}`,
+      progress
+    };
+  }
+  return null;
 }

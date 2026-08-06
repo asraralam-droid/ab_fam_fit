@@ -42,7 +42,8 @@ export function WeeklyCheckInModal({
         word: word || 'Steady',
         win,
         struggle,
-        need
+        need,
+        kind: 'weekly'
       })
     );
     dispatch(homeSlice.actions.completeCheckIn(word || 'Steady'));

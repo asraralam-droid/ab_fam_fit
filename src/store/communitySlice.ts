@@ -329,7 +329,7 @@ const initialState: CommunityState = {
     content:
     'Just finished day 3 of the green juice reset and I feel AMAZING. Energy is through the roof. Anyone else on this challenge?',
     image:
-    'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1610970881699-44a5587cabec?auto=format&fit=crop&w=800&q=80',
     time: '2h ago',
     likes: 32,
     liked: false,
@@ -575,7 +575,7 @@ const initialState: CommunityState = {
     description: 'Kickoff for the summer fitness challenge. Details TBD.',
     hideLocation: false,
     imageUrl:
-    'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80',
     attendeeScope: 'all-members',
     remindAttendees: true,
     hideAttendees: false,

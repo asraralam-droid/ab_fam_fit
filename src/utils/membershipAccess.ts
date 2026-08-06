@@ -1,8 +1,8 @@
 /**
  * Membership access rules (Phase 1+).
  *
- * - No free tier: entry requires the $77 book package (or higher).
- * - Books tier: books + basic self-guided tools + pillar community.
+ * - No free tier: entry requires program-level purchase (JAB full program).
+ * - Books tier: program access + books + basic self-guided tools + pillar community.
  * - Premium: structured lessons, coaching, active challenges.
  * - Challenge create: Misty at launch; later unlocked after completing
  *   a Misty challenge AND working with her.
@@ -36,21 +36,25 @@ const FEATURE_MIN_TIER: Record<AppFeature, MembershipTier> = {
   createChallenges: 'books'
 };
 
-export const BOOK_PACKAGE_PRICE = 77;
-export const BOOK_PACKAGE_TITLE = 'JAB Book Series — All 4 Books';
+/** Entry checkout is framed as a full Program purchase (not per-module). */
+export const BOOK_PACKAGE_PRICE = 197;
+export const BOOK_PACKAGE_TITLE =
+  'Juicing for Authentic Balance — Full Program';
+export const BOOK_PACKAGE_PROGRAM_ID = 'prog-jab';
 
 export const BOOK_PACKAGE_FEATURES = [
-  'All 4 Authentic Balance books (read & listen)',
+  'One payment unlocks the entire JAB program (not charged per module)',
+  'All modules included — sections unlock by time/progress only',
+  'Program books (read & listen) + Authentic Bestie',
   'Basic self-guided tools for your selected pillar',
-  'Authentic Bestie companion',
   'Access to your pillar community'
 ];
 
 export const BOOK_PACKAGE_EXCLUDED = [
-  'Structured step-by-step lessons',
   'Personalized coaching (“what to eat/juice”)',
   'Active Misty challenges & high-end cohorts',
-  'Other pillar communities (join separately)'
+  'Other pillar communities (join separately)',
+  'Per-module add-on purchases (not used — program is all-inclusive)'
 ];
 
 export function hasPaidAccess(tier: MembershipTier): boolean {

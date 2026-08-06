@@ -20,22 +20,22 @@ const bookMeta: Record<
   }> =
 {
   'book-1': {
-    title: 'Juicing for Authentic Balance',
+    title: 'Authentic Foundation',
     author: 'Misty A.',
     cover:
-    'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=400&q=80'
+    'https://images.unsplash.com/photo-1544716278-e513176f20b5?auto=format&fit=crop&w=400&q=80'
   },
   'book-2': {
-    title: 'The 30-Day Reset',
+    title: 'The Practice',
     author: 'Misty A.',
     cover:
-    'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80'
+    'https://images.unsplash.com/photo-1610970881699-44a5587cabec?auto=format&fit=crop&w=400&q=80'
   },
   'book-3': {
     title: 'Maintaining the Lifestyle',
     author: 'Misty A.',
     cover:
-    'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=400&q=80'
+    'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=400&q=80'
   }
 };
 const sections = [

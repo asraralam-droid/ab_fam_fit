@@ -1,0 +1,420 @@
+{
+  "meta": {
+    "purpose": "Draft AI Bestie topic knowledge for client review (demo prototype — not real AI training)",
+    "brand": "Authentic Balance Institute",
+    "voice": "Misty Angelique — warm, supportive bestie tone; progress over perfection",
+    "tagline": "Health · Business · Life Coaching",
+    "productJourney": [
+      "Assessment",
+      "Basic Entry Product",
+      "Premium Coaching",
+      "Programs",
+      "Ongoing Growth"
+    ],
+    "entryProduct": {
+      "title": "JAB Book Series — All 4 Books",
+      "priceUsd": 77,
+      "includes": [
+        "All 4 Authentic Balance books (read & listen)",
+        "Basic self-guided tools for selected pillar",
+        "Authentic Bestie companion",
+        "Access to pillar community"
+      ]
+    },
+    "notesForReview": [
+      "Edit, remove, or rewrite any replies before implementation.",
+      "Keywords drive which topic reply is chosen in the demo.",
+      "Fallback is used when nothing matches.",
+      "This is scripted topic matching — not a trained LLM."
+    ]
+  },
+
+  "pillars": [
+    {
+      "id": "authentic-body",
+      "label": "Authentic Body",
+      "description": "Physical health, energy, and vitality",
+      "communityBucket": "health-wellness"
+    },
+    {
+      "id": "authentic-brain",
+      "label": "Authentic Brain",
+      "description": "Mindset, clarity, and mental focus",
+      "communityBucket": "life-coaching"
+    },
+    {
+      "id": "authentically-becoming",
+      "label": "Authentically Becoming",
+      "description": "Growth, purpose, and who you are becoming",
+      "communityBucket": "life-coaching"
+    },
+    {
+      "id": "authentic-behavior",
+      "label": "Authentic Behavior",
+      "description": "Habits, discipline, and consistent action",
+      "communityBucket": "life-coaching"
+    },
+    {
+      "id": "authentic-bonding",
+      "label": "Authentic Bonding",
+      "description": "Relationships, connection, and community",
+      "communityBucket": "life-coaching"
+    },
+    {
+      "id": "authentic-beauty",
+      "label": "Authentic Beauty",
+      "description": "Confidence, presence, and self-expression",
+      "communityBucket": "health-wellness"
+    },
+    {
+      "id": "authentic-business",
+      "label": "Authentic Business",
+      "description": "Leadership, systems, and enterprise growth",
+      "communityBucket": "business"
+    }
+  ],
+
+  "sourceContentFromApp": {
+    "program": {
+      "id": "prog-jab",
+      "title": "Juicing for Authentic Balance (JAB Series)",
+      "author": "Misty Angelique",
+      "description": "A comprehensive program teaching the Authentic Balance juicing methodology.",
+      "modules": [
+        {
+          "title": "Foundations",
+          "sections": ["Mindset setup"]
+        },
+        {
+          "title": "Implementation",
+          "sections": ["Daily rituals"]
+        }
+      ],
+      "books": [
+        "Book 1: The Foundation — Building Your Authentic Balance",
+        "Book 2: The Practice — Daily rituals and routines"
+      ]
+    },
+    "lessons": [
+      { "title": "Understanding Your Gut", "module": "Module 2" },
+      { "title": "Hydration & Energy", "module": "Module 1" },
+      { "title": "Setting Your Why", "module": "Module 1" },
+      { "title": "Building Daily Rituals", "module": "Module 2" }
+    ],
+    "recipeCategories": ["Breakfast", "Lunch", "Dinner", "Snack", "Juice"],
+    "sampleRecipes": [
+      "Anti-Inflammatory Green Glow Juice",
+      "Beet & Carrot Detox Juice",
+      "Ginger-Lime Cabbage and Asparagus Stir-Fry",
+      "Zucchini Noodles with Creamy Basil Pesto",
+      "Roasted Turmeric Cauliflower and Avocado Bowl",
+      "Garden Fresh Cucumber and Radish Salad",
+      "High-Protein Overnight Oats with Berries",
+      "Berry Chia Pudding",
+      "Maple Tahini Energy Bites"
+    ],
+    "brandQuotes": [
+      "You are not starting over. You are starting from experience.",
+      "Authentic balance isn't about perfection — it's about consistency and grace.",
+      "Small daily steps create the life you want.",
+      "Your body is listening to every word you speak."
+    ]
+  },
+
+  "topics": [
+    {
+      "id": "juicing_jab",
+      "label": "Juicing & JAB Program",
+      "keywords": [
+        "juice",
+        "juicing",
+        "juicer",
+        "jab",
+        "green juice",
+        "detox",
+        "leafy",
+        "greens"
+      ],
+      "suggestedPrompts": [
+        "How do I get started with juicing?",
+        "What is the JAB program?",
+        "Should I always add greens?"
+      ],
+      "replies": [
+        "Juicing for Authentic Balance (JAB) is Misty’s core juicing methodology — start with Foundations / Mindset setup, then build into daily rituals. Always include a leafy green when you can for maximum nutrients.",
+        "Welcome to JAB energy! Complete topics in order, check in weekly, and keep your juicer setup simple so the habit sticks. Progress over perfection, bestie.",
+        "If you’re new to juicing, begin with Book 1: The Foundation, watch the welcome overview, then try a simple green glow or beet & carrot juice from the recipes section."
+      ]
+    },
+    {
+      "id": "authentic_balance_mindset",
+      "label": "Authentic Balance & Mindset",
+      "keywords": [
+        "authentic balance",
+        "mindset",
+        "why",
+        "foundation",
+        "purpose",
+        "becoming",
+        "balance"
+      ],
+      "suggestedPrompts": [
+        "What does Authentic Balance mean?",
+        "Help me set my why",
+        "I’m losing motivation"
+      ],
+      "replies": [
+        "Authentic balance isn’t about perfection — it’s about consistency and grace. Misty’s approach is finding what works for your unique body, mind, and life season.",
+        "You are not starting over. You are starting from experience. Revisit your ‘why’ from Module 1 and let that guide today’s small step.",
+        "Your body is listening to every word you speak — so speak kindly. Choose one Authentic pillar focus today and honor it without pressure."
+      ]
+    },
+    {
+      "id": "pillars",
+      "label": "Pillars & Life Areas",
+      "keywords": [
+        "pillar",
+        "authentic body",
+        "authentic brain",
+        "authentic business",
+        "bonding",
+        "beauty",
+        "behavior",
+        "becoming"
+      ],
+      "suggestedPrompts": [
+        "What are the Authentic pillars?",
+        "Which pillar should I focus on?",
+        "Tell me about Authentic Body"
+      ],
+      "replies": [
+        "Authentic Balance has seven pillars: Body, Brain, Becoming, Behavior, Bonding, Beauty, and Business. You pick a starting pillar in onboarding so your dashboard and community match your focus.",
+        "Authentic Body is about physical health, energy, and vitality — meals, hydration, juicing, and daily tracking live here. Authentic Business focuses on leadership, systems, and growth.",
+        "Your pillar isn’t a box — it’s your entry point. You can grow into other pillars over time as Misty’s programs and communities expand with you."
+      ]
+    },
+    {
+      "id": "modules_progress",
+      "label": "Modules, Lessons & Progress",
+      "keywords": [
+        "module",
+        "lesson",
+        "section",
+        "unlock",
+        "progress",
+        "day 28",
+        "curriculum",
+        "program"
+      ],
+      "suggestedPrompts": [
+        "What should I do in Module 1?",
+        "How do modules unlock?",
+        "Where do I start in my program?"
+      ],
+      "replies": [
+        "In JAB, Foundations comes first (Mindset setup with books, welcome video, and getting-started guides). Implementation / Daily rituals unlocks after the timed milestone — stay consistent through the early days.",
+        "Module 1 energy looks like Hydration & Energy and Setting Your Why. Module 2 goes deeper with Understanding Your Gut and Building Daily Rituals. Take them in order when you can.",
+        "Treat your program like a journey: Pillar → Program → Modules → Sections → Lessons. Finish today’s lesson, log your check-in, then come back tomorrow. Small daily steps create the life you want."
+      ]
+    },
+    {
+      "id": "hydration",
+      "label": "Hydration & Energy",
+      "keywords": [
+        "water",
+        "hydrate",
+        "hydration",
+        "glasses",
+        "8 glasses",
+        "drink",
+        "thirsty",
+        "energy"
+      ],
+      "suggestedPrompts": [
+        "Remind me about hydration",
+        "Have I been drinking enough water?",
+        "Tips for more energy"
+      ],
+      "replies": [
+        "Hydration is key for Authentic Body energy! Aim for your daily water goal — those 8 glasses matter. Check your dashboard tracker and sip steadily through the day.",
+        "Low energy often starts with low water. Pair hydration with your juicing ritual and you’ll feel the difference. You’ve got this.",
+        "Bestie tip: set gentle reminders, log each glass, and celebrate consistency — not perfection."
+      ]
+    },
+    {
+      "id": "meals_recipes_food",
+      "label": "Meals, Recipes & Food Choices",
+      "keywords": [
+        "meal",
+        "recipe",
+        "food",
+        "eat",
+        "breakfast",
+        "lunch",
+        "dinner",
+        "snack",
+        "pasta",
+        "pizza",
+        "fried",
+        "packaged",
+        "log food"
+      ],
+      "suggestedPrompts": [
+        "What should I eat today?",
+        "Suggest a clean recipe",
+        "Is pizza okay on the program?"
+      ],
+      "replies": [
+        "Lean into whole, vibrant foods — think zucchini noodles, turmeric cauliflower bowls, cucumber salads, chia pudding, and green juices from the Recipes section. Log what you eat so we can stay honest together.",
+        "Heavy pasta, pizza, packaged, or fried foods can pull you off Authentic Body protocol. If that showed up today, no shame — choose a lighter next meal and get back on track.",
+        "Hungry for ideas? Try Anti-Inflammatory Green Glow Juice, Beet & Carrot Detox Juice, or High-Protein Overnight Oats. Browse Recipes by Breakfast, Lunch, Dinner, Snack, or Juice."
+      ]
+    },
+    {
+      "id": "daily_rituals_tracking",
+      "label": "Daily Rituals & Tracking",
+      "keywords": [
+        "ritual",
+        "routine",
+        "track",
+        "tracking",
+        "log",
+        "check-in",
+        "habit",
+        "journal",
+        "weight",
+        "dashboard"
+      ],
+      "suggestedPrompts": [
+        "Help me build a daily ritual",
+        "What should I track today?",
+        "I keep skipping check-ins"
+      ],
+      "replies": [
+        "Daily rituals are where Authentic Behavior meets Authentic Body — juice or hydrate, log meals, move with intention, and journal one honest line. Consistency beats intensity.",
+        "Open your dashboard: meals, hydration, progress, weight, and journaling are there to keep you accountable. One check-in today is a win.",
+        "If you missed a day, you’re not behind — you’re practicing. Restart with the smallest ritual you can keep for the next 7 days."
+      ]
+    },
+    {
+      "id": "family_community",
+      "label": "Family, Community & Bonding",
+      "keywords": [
+        "family",
+        "fam",
+        "kids",
+        "community",
+        "bonding",
+        "group",
+        "together",
+        "support"
+      ],
+      "suggestedPrompts": [
+        "How do I involve my family?",
+        "Where is my community?",
+        "I need support"
+      ],
+      "replies": [
+        "Authentic Bonding matters here — you’re not meant to do this alone. Join your pillar community, share wins, and let your people cheer you on.",
+        "Authentic Balance is for your unique body and family. Invite them into simple rituals — a shared juice, a walk, or logging water together.",
+        "Feeling unsupported? Check Community for your pillar space and events. Connection is part of the methodology, not an extra."
+      ]
+    },
+    {
+      "id": "business_leadership",
+      "label": "Authentic Business & Leadership",
+      "keywords": [
+        "business",
+        "leadership",
+        "entrepreneur",
+        "systems",
+        "automation",
+        "consulting",
+        "organization",
+        "affiliate"
+      ],
+      "suggestedPrompts": [
+        "I’m on the business pillar — where do I start?",
+        "How does consulting work?",
+        "Tell me about affiliates"
+      ],
+      "replies": [
+        "Authentic Business focuses on leadership, systems, and enterprise growth. Your business dashboard highlights consulting needs, automation, and next steps from onboarding.",
+        "Clarify your model, automate what you can, and invest in premium consulting when you’re ready. Assessment → entry product → coaching → programs → ongoing growth.",
+        "Affiliates can earn by referring members to Authentic Balance — entry books, upgrades, programs, and challenges. Ask Admin or Affiliate Help if you’re building that lane."
+      ]
+    },
+    {
+      "id": "motivation_accountability",
+      "label": "Motivation & Accountability",
+      "keywords": [
+        "motivate",
+        "motivation",
+        "stuck",
+        "consistency",
+        "accountable",
+        "challenge",
+        "coaching",
+        "struggling",
+        "help"
+      ],
+      "suggestedPrompts": [
+        "I’m stuck — help",
+        "Keep me accountable",
+        "Motivate me today"
+      ],
+      "replies": [
+        "Progress not perfection. You’re doing amazing on your journey — pick one tiny action (water, a juice, or a 5-minute lesson) and do it now.",
+        "When consistency wobbles, return to your why, your pillar, and today’s ritual. Misty’s challenges and coaching exist for deeper accountability when you’re ready.",
+        "Small daily steps create the life you want. I’m here as your Authentic Bestie — ask me about juicing, meals, hydration, modules, or mindset anytime."
+      ]
+    },
+    {
+      "id": "books_membership",
+      "label": "Books, Membership & Getting Started",
+      "keywords": [
+        "book",
+        "books",
+        "membership",
+        "pay",
+        "upgrade",
+        "package",
+        "read",
+        "listen",
+        "onboarding",
+        "start"
+      ],
+      "suggestedPrompts": [
+        "What’s included in the book package?",
+        "How do I start?",
+        "Should I upgrade?"
+      ],
+      "replies": [
+        "The $77 JAB Book Series unlocks all 4 Authentic Balance books (read & listen), basic self-guided tools for your pillar, Authentic Bestie, and your pillar community.",
+        "Start with onboarding: choose your pillar, answer a few questions, then enter through the book package. From there, Explore Learn / Programs for JAB content.",
+        "Books get you in the door. Structured lessons, personalized coaching, and Misty challenges unlock with premium coaching upgrades when you’re ready for the next level."
+      ]
+    }
+  ],
+
+  "fallback": {
+    "id": "fallback",
+    "label": "Default / No Match",
+    "replies": [
+      "I’m your Authentic Bestie — ask me about juicing, your pillar, modules, hydration, meals, rituals, community, or motivation, and I’ll point you in the right direction.",
+      "Hmm, let me stay in my lane with what I know best for Misty’s programs. Try asking about JAB juicing, Authentic Body habits, or today’s check-in.",
+      "I’ve got you. Want a quick win? Log water, peek at a Module 1 lesson, or grab a clean recipe — then tell me what you’re working on."
+    ]
+  },
+
+  "suggestedPromptChips": [
+    "What is the JAB program?",
+    "What are the Authentic pillars?",
+    "Remind me about hydration",
+    "Suggest a clean recipe",
+    "What should I do in Module 1?",
+    "Help me build a daily ritual",
+    "I’m stuck — motivate me",
+    "What’s in the book package?"
+  ]
+}

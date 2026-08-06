@@ -15,7 +15,8 @@ import {
   Shield,
   Scale,
   BookOpen,
-  ChevronRight } from
+  ChevronRight,
+  Headphones } from
 'lucide-react';
 import { motion } from 'framer-motion';
 type Tile = {
@@ -42,6 +43,14 @@ export function Discover() {
     accent: 'sage'
   },
   {
+    label: 'Podcasts',
+    desc: 'Stream Misty’s audio & video episodes.',
+    icon: Headphones,
+    to: '/podcast',
+    accent: 'primary',
+    badge: 'New'
+  },
+  {
     label: 'Recipes',
     desc: 'Browse meals, favorites, and filters.',
     icon: ChefHat,
@@ -53,8 +62,7 @@ export function Discover() {
     desc: 'Join, create, and lead the leaderboard.',
     icon: Trophy,
     to: '/challenges',
-    accent: 'primary',
-    badge: 'New'
+    accent: 'primary'
   },
   {
     label: 'Affiliate',

@@ -119,9 +119,9 @@ const PHOTO_CATEGORIES: {
   { id: 'progress', label: 'Progress' },
   { id: 'after', label: 'After' }];
 const DEMO_PROGRESS_IMAGES = [
-  'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=600&q=80'];
+  'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=600&q=80'];
 
 function formatPhotoDate(isoDate: string) {
   const d = new Date(`${isoDate}T12:00:00`);

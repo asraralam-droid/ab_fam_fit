@@ -85,6 +85,14 @@ function loadPreloadedState(): any {
         enrolledAt: Object.fromEntries(
           enrolledIds.map((id: string) => [id, Date.now()])
         ),
+        paidProgramIds: [...enrolledIds],
+        paidAt: Object.fromEntries(
+          enrolledIds.map((id: string) => [id, new Date().toISOString()])
+        ),
+        paidAmountUsd: Object.fromEntries(
+          enrolledIds.map((id: string) => [id, id === 'prog-jab' ? 197 : 0])
+        ),
+        demoDayOffsetByProgram: {},
         completedItemKeys: Array.isArray(state.programs.completedItemKeys)
           ? state.programs.completedItemKeys
           : []
@@ -107,6 +115,35 @@ function loadPreloadedState(): any {
           enrolledAt[id] = Date.now();
         }
       }
+      if (!Array.isArray(state.programs.paidProgramIds)) {
+        state.programs.paidProgramIds = [...state.programs.enrolledIds];
+      }
+      if (!state.programs.paidAt || typeof state.programs.paidAt !== 'object') {
+        state.programs.paidAt = {};
+      }
+      if (
+        !state.programs.paidAmountUsd ||
+        typeof state.programs.paidAmountUsd !== 'object'
+      ) {
+        state.programs.paidAmountUsd = {};
+      }
+      if (
+        !state.programs.demoDayOffsetByProgram ||
+        typeof state.programs.demoDayOffsetByProgram !== 'object'
+      ) {
+        state.programs.demoDayOffsetByProgram = {};
+      }
+      for (const id of state.programs.enrolledIds as string[]) {
+        if (!state.programs.paidProgramIds.includes(id)) {
+          state.programs.paidProgramIds.push(id);
+        }
+        if (!state.programs.paidAt[id]) {
+          state.programs.paidAt[id] = new Date().toISOString();
+        }
+        if (state.programs.paidAmountUsd[id] === undefined) {
+          state.programs.paidAmountUsd[id] = id === 'prog-jab' ? 197 : 0;
+        }
+      }
     } else if (state?.programs) {
       const enrolledIds = adminProgramIds.includes('prog-jab') ? ['prog-jab'] : [];
       const enrolledAt: Record<string, number> = {};
@@ -116,6 +153,14 @@ function loadPreloadedState(): any {
       state.programs = {
         enrolledIds,
         enrolledAt,
+        paidProgramIds: [...enrolledIds],
+        paidAt: Object.fromEntries(
+          enrolledIds.map((id: string) => [id, new Date().toISOString()])
+        ),
+        paidAmountUsd: Object.fromEntries(
+          enrolledIds.map((id: string) => [id, id === 'prog-jab' ? 197 : 0])
+        ),
+        demoDayOffsetByProgram: {},
         completedItemKeys: []
       };
     }
@@ -137,7 +182,7 @@ function loadPreloadedState(): any {
             attendeeIds: Array.isArray(e.attendeeIds) ?
               e.attendeeIds :
               fallback?.attendeeIds ?? [],
-            imageUrl: e.imageUrl ?? fallback?.imageUrl
+            imageUrl: fallback?.imageUrl ?? e.imageUrl
           };
         }
       );
@@ -244,6 +289,8 @@ function loadPreloadedState(): any {
           return {
             ...def,
             ...r,
+            // Demo brand refresh: seed recipe images win over stale localStorage.
+            image: def.image,
             ingredients:
               Array.isArray(r.ingredients) && r.ingredients.length > 0 ?
                 r.ingredients :
@@ -257,6 +304,18 @@ function loadPreloadedState(): any {
         }
       );
     }
+    if (state?.content?.recipes?.length) {
+      const defaultContent = contentSlice.getInitialState();
+      const contentById = Object.fromEntries(
+        defaultContent.recipes.map((r) => [r.id, r])
+      );
+      state.content.recipes = state.content.recipes.map(
+        (r: { id: string; image?: string }) => {
+          const def = contentById[r.id];
+          return def ? { ...r, image: def.image } : r;
+        }
+      );
+    }
     if (state && !state.chat) {
       state.chat = chatSlice.getInitialState();
     }
@@ -267,6 +326,17 @@ function loadPreloadedState(): any {
         state.membership.workedWithMisty =
           state.membership.tier === 'coaching' ||
           state.membership.tier === 'challenge';
+      }
+    }
+    if (state?.notifications) {
+      if (state.notifications.lastDailyRunDate === undefined) {
+        state.notifications.lastDailyRunDate = null;
+      }
+      if (state.notifications.todaysPrompt === undefined) {
+        state.notifications.todaysPrompt = null;
+      }
+      if (!Array.isArray(state.notifications.sentTrackingReminderIds)) {
+        state.notifications.sentTrackingReminderIds = [];
       }
     }
     if (state?.community?.groups?.length) {
@@ -374,6 +444,22 @@ function loadPreloadedState(): any {
       if (!hasBooksTier) {
         state.admin.pricing = defaultAdminState.pricing;
       }
+    }
+    if (state?.home) {
+      state.home.dailyCheckInCompleted =
+        state.home.dailyCheckInCompleted ?? false;
+      state.home.dailyCheckInDate = state.home.dailyCheckInDate ?? null;
+      state.home.dailyCheckInFeeling = state.home.dailyCheckInFeeling ?? null;
+    }
+    if (Array.isArray(state?.challenges?.challenges)) {
+      state.challenges.challenges = state.challenges.challenges.map(
+        (c: { pillarId?: string; id?: string }) => ({
+          ...c,
+          pillarId:
+            c.pillarId ??
+            (c.id === 'c4' ? 'authentically-becoming' : 'authentic-body')
+        })
+      );
     }
     return state;
   } catch {

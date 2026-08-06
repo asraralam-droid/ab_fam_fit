@@ -1,5 +1,6 @@
+import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { RootState } from '../../store';
 import {
   ArrowLeft,
@@ -12,8 +13,18 @@ import {
 'lucide-react';
 import { motion } from 'framer-motion';
 import { canCreateChallenge } from '../../utils/membershipAccess';
+import type { PillarOutletContext } from '../pillars/pillarOutletContext';
+import { pillarById, type AbPillarId } from '../../utils/abPillars';
+
 export function Challenges() {
   const navigate = useNavigate();
+  const params = useParams<{ pillarId?: string }>();
+  const outlet = useOutletContext<PillarOutletContext | undefined>();
+  const pillarId = outlet?.pillarId || params.pillarId;
+  const pillar = pillarId
+    ? pillarById(pillarId as AbPillarId)
+    : undefined;
+  const inPillarShell = !!outlet?.pillarId;
   const { challenges } = useSelector((state: RootState) => state.challenges);
   const { user } = useSelector((state: RootState) => state.auth);
   const { completedMistyChallenge, workedWithMisty } = useSelector(
@@ -24,10 +35,15 @@ export function Challenges() {
     workedWithMisty,
     user?.role
   );
-  const joined = challenges.filter((c) => c.joined);
-  const available = challenges.filter((c) => !c.joined);
+  const scoped = useMemo(() => {
+    if (!pillarId) return challenges;
+    return challenges.filter((c) => c.pillarId === pillarId);
+  }, [challenges, pillarId]);
+  const joined = scoped.filter((c) => c.joined);
+  const available = scoped.filter((c) => !c.joined);
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24 bg-surface">
+      {!inPillarShell && (
       <div className="h-16 px-4 flex items-center justify-between border-b border-border sticky top-0 bg-surface/95 backdrop-blur z-10">
         <button
           onClick={() => navigate(-1)}
@@ -47,8 +63,19 @@ export function Challenges() {
         <div className="w-10" />
         }
       </div>
+      )}
 
       <div className="px-4 pt-5 flex flex-col gap-6">
+        {pillar && (
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">
+              {pillar.label} challenges
+            </p>
+            <p className="text-sm text-text-muted">
+              Challenges scoped to this pillar. Browse the global list anytime.
+            </p>
+          </div>
+        )}
         <section>
           <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">
             My Challenges ({joined.length})

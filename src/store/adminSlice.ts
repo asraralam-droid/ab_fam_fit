@@ -494,10 +494,10 @@ const initialState: AdminState = {
     tiers: [
     {
       id: 'tier-books',
-      name: 'Book Package (Entry)',
-      price: 77,
+      name: 'JAB Full Program (Entry)',
+      price: 197,
       description:
-      'Required entry: all 4 books (read/listen) + basic self-guided tools. No free tier.',
+      'Program-level payment: unlocks entire JAB program (not per module) + books & tools. No free tier.',
       active: true
     },
     {

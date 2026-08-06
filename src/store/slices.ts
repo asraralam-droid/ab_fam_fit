@@ -152,6 +152,9 @@ interface HomeState {
   journeyDay: number;
   checkInCompleted: boolean;
   weeklyWord: string | null;
+  dailyCheckInCompleted: boolean;
+  dailyCheckInDate: string | null;
+  dailyCheckInFeeling: number | null;
 }
 const initialHomeState: HomeState = {
   streakDays: 12,
@@ -159,7 +162,10 @@ const initialHomeState: HomeState = {
   waterCount: 5,
   journeyDay: 47,
   checkInCompleted: false,
-  weeklyWord: null
+  weeklyWord: null,
+  dailyCheckInCompleted: false,
+  dailyCheckInDate: null,
+  dailyCheckInFeeling: null
 };
 export const homeSlice = createSlice({
   name: 'home',
@@ -171,6 +177,14 @@ export const homeSlice = createSlice({
     completeCheckIn: (state, action: PayloadAction<string>) => {
       state.checkInCompleted = true;
       state.weeklyWord = action.payload;
+    },
+    completeDailyCheckIn: (
+      state,
+      action: PayloadAction<{ date: string; feeling: number }>
+    ) => {
+      state.dailyCheckInCompleted = true;
+      state.dailyCheckInDate = action.payload.date;
+      state.dailyCheckInFeeling = action.payload.feeling;
     },
     incrementStreak: (state) => {
       state.streakDays += 1;
@@ -189,6 +203,9 @@ export interface Meal {
   time: string;
   date?: string;
   image?: string;
+  /** Demo: protocol keywords flagged at log time. */
+  protocolFlags?: string[];
+  protocolSeverity?: 'warning' | 'alert';
 }
 interface MealsState {
   loggedMeals: Meal[];
@@ -251,7 +268,7 @@ const initialRecipesState: RecipesState = {
     difficulty: 'Easy',
     servings: 2,
     image:
-    'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=400&q=80',
+    'https://images.unsplash.com/photo-1610970881699-44a5587cabec?auto=format&fit=crop&w=400&q=80',
     ingredients: [
     '1 cup fresh spinach',
     '1/2 green apple, cored',
@@ -517,6 +534,8 @@ export interface Challenge {
   waitlistCount?: number;
   onWaitlist?: boolean;
   requiresDailyLogs?: boolean;
+  /** Authentic Balance pillar this challenge belongs under. */
+  pillarId?: string;
 }
 
 const defaultLeaderboard: ChallengeLeaderboardRow[] = [
@@ -557,7 +576,8 @@ const initialChallengesState: ChallengesState = {
     points: 240,
     daysLeft: 12,
     leaderboard: defaultLeaderboard,
-    requiresDailyLogs: true
+    requiresDailyLogs: true,
+    pillarId: 'authentic-body'
   },
   {
     id: 'c2',
@@ -574,7 +594,8 @@ const initialChallengesState: ChallengesState = {
     referralLink: 'https://authenticbalance.app/c/juice-reset',
     joined: false,
     leaderboard: defaultLeaderboard,
-    requiresDailyLogs: true
+    requiresDailyLogs: true,
+    pillarId: 'authentic-body'
   },
   {
     id: 'c3',
@@ -591,7 +612,8 @@ const initialChallengesState: ChallengesState = {
     referralLink: 'https://authenticbalance.app/c/hydration-hero',
     joined: false,
     leaderboard: defaultLeaderboard,
-    requiresDailyLogs: true
+    requiresDailyLogs: true,
+    pillarId: 'authentic-body'
   },
   {
     id: 'c4',
@@ -613,7 +635,8 @@ const initialChallengesState: ChallengesState = {
     maxParticipants: 10,
     price: 997,
     waitlistCount: 6,
-    requiresDailyLogs: true
+    requiresDailyLogs: true,
+    pillarId: 'authentically-becoming'
   }],
   dailyLogs: [
   {
@@ -716,12 +739,40 @@ const initialBestieState: BestieState = {
   }]
 
 };
+/** Notification/CTA text that was incorrectly stored as Bestie replies. */
+export function isDumpedBestiePrompt(content: string): boolean {
+  const c = content.toLowerCase();
+  return (
+    c.startsWith('protocol alert:') ||
+    c.startsWith('gentle protocol note:') ||
+    c.includes('check-in is still open') ||
+    c.includes('ask me in bestie') ||
+    c.startsWith('remember your obstacle')
+  );
+}
+
 export const bestieSlice = createSlice({
   name: 'bestie',
   initialState: initialBestieState,
   reducers: {
     addMessage: (state, action: PayloadAction<Message>) => {
+      if (state.messages.some((m) => m.id === action.payload.id)) return;
       state.messages.push(action.payload);
+    },
+    /** Demo: refresh the opening Bestie line from live user context. */
+    setWelcomeMessage: (state, action: PayloadAction<string>) => {
+      const first = state.messages[0];
+      if (state.messages.length === 1 && first?.role === 'bestie') {
+        first.content = action.payload;
+      }
+    },
+    /** Move wrongly seeded notification dumps onto the asking (user) side. */
+    repairDumpedPrompts: (state) => {
+      for (const m of state.messages) {
+        if (m.role === 'bestie' && isDumpedBestiePrompt(m.content)) {
+          m.role = 'user';
+        }
+      }
     }
   }
 });
@@ -733,9 +784,17 @@ export interface Notification {
   time: string;
   read: boolean;
   type: string;
+  /** Optional in-app route for daily / automated prompts. */
+  link?: string;
 }
 interface NotificationsState {
   items: Notification[];
+  /** YYYY-MM-DD when automated daily messaging last ran (demo). */
+  lastDailyRunDate: string | null;
+  /** Primary daily motivation prompt shown on Home. */
+  todaysPrompt: string | null;
+  /** Ids of hydration/meal time-slot reminders already sent. */
+  sentTrackingReminderIds: string[];
 }
 const initialNotificationsState: NotificationsState = {
   items: [
@@ -759,8 +818,10 @@ const initialNotificationsState: NotificationsState = {
     time: 'Yesterday',
     read: true,
     type: 'streak'
-  }]
-
+  }],
+  lastDailyRunDate: null,
+  todaysPrompt: null,
+  sentTrackingReminderIds: []
 };
 export const notificationsSlice = createSlice({
   name: 'notifications',
@@ -768,6 +829,39 @@ export const notificationsSlice = createSlice({
   reducers: {
     markAllRead: (state) => {
       state.items.forEach((item) => item.read = true);
+    },
+    addNotifications: (state, action: PayloadAction<Notification[]>) => {
+      const existing = new Set(state.items.map((item) => item.id));
+      const fresh = action.payload.filter((item) => !existing.has(item.id));
+      if (fresh.length) {
+        state.items = [...fresh, ...state.items];
+      }
+    },
+    markNotificationRead: (state, action: PayloadAction<string>) => {
+      const item = state.items.find((n) => n.id === action.payload);
+      if (item) item.read = true;
+    },
+    setDailyMessagingRun: (
+      state,
+      action: PayloadAction<{ date: string; prompt: string | null }>
+    ) => {
+      state.lastDailyRunDate = action.payload.date;
+      state.todaysPrompt = action.payload.prompt;
+    },
+    markTrackingRemindersSent: (state, action: PayloadAction<string[]>) => {
+      const set = new Set(state.sentTrackingReminderIds);
+      for (const id of action.payload) set.add(id);
+      state.sentTrackingReminderIds = [...set];
+    },
+    /** Demo helper: clear today’s tracking reminder lock so slots can fire again. */
+    clearTrackingRemindersForDemo: (state) => {
+      const today = new Date().toISOString().slice(0, 10);
+      state.sentTrackingReminderIds = state.sentTrackingReminderIds.filter(
+        (id) => !id.includes(today)
+      );
+      state.items = state.items.filter(
+        (item) => !(item.id.startsWith('track-') && item.id.includes(today))
+      );
     }
   }
 });
@@ -799,6 +893,8 @@ export interface CheckInEntry {
   win: string;
   struggle: string;
   need: string;
+  /** Weekly reflection vs light daily mood note. */
+  kind?: 'weekly' | 'daily';
 }
 interface CheckInState {
   entries: CheckInEntry[];

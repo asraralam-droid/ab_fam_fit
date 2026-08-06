@@ -64,11 +64,27 @@ import { AdminContent } from './pages/admin/AdminContent';
 import { AdminPrograms } from './pages/admin/AdminPrograms';
 import { AdminActivity } from './pages/admin/AdminActivity';
 import { Chat } from './pages/chat/Chat';
+import { Podcast } from './pages/podcast/Podcast';
+import { PodcastEpisode } from './pages/podcast/PodcastEpisode';
+import { PillarShell } from './pages/pillars/PillarShell';
+import { PillarHome } from './pages/pillars/PillarHome';
+import { PillarIntroduction } from './pages/pillars/PillarIntroduction';
+import { PillarCheckIn } from './pages/pillars/PillarCheckIn';
+import { PillarLessons } from './pages/pillars/PillarLessons';
+import { PillarVideos } from './pages/pillars/PillarVideos';
+import { PillarBooks } from './pages/pillars/PillarBooks';
+import { PillarWorksheets } from './pages/pillars/PillarWorksheets';
+import { PillarProducts } from './pages/pillars/PillarProductsPage';
+import { PillarProgress } from './pages/pillars/PillarProgress';
 export function App() {
   return (
     <Provider store={store}>
       <ThemeProvider>
-        <BrowserRouter>
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}>
           <MobileFrame>
             <Routes>
               {/* Auth Routes */}
@@ -120,6 +136,22 @@ export function App() {
                 <Route path="/programs" element={<Programs />} />
                 <Route path="/programs/:id" element={<ProgramDetail />} />
                 <Route path="/programs/:id/section/:sectionId" element={<ProgramDetail />} />
+                <Route path="/podcast" element={<Podcast />} />
+                <Route path="/podcast/:id" element={<PodcastEpisode />} />
+                <Route path="/pillars/:pillarId" element={<PillarShell />}>
+                  <Route index element={<PillarHome />} />
+                  <Route path="introduction" element={<PillarIntroduction />} />
+                  <Route path="check-in" element={<PillarCheckIn />} />
+                  <Route path="lessons" element={<PillarLessons />} />
+                  <Route path="videos" element={<PillarVideos />} />
+                  <Route path="podcast" element={<Podcast />} />
+                  <Route path="books" element={<PillarBooks />} />
+                  <Route path="worksheets" element={<PillarWorksheets />} />
+                  <Route path="challenges" element={<Challenges />} />
+                  <Route path="products" element={<PillarProducts />} />
+                  <Route path="bestie" element={<Bestie />} />
+                  <Route path="progress" element={<PillarProgress />} />
+                </Route>
                 <Route path="/dashboard" element={<Navigate to="/home" replace />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/members" element={<AdminMembers />} />
